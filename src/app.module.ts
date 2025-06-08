@@ -7,6 +7,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { ProfileModule } from './profile/profile.module';
+import { GoalsModule } from './goals/goals.module';
 
 @Module({
   imports: [
