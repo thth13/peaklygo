@@ -7,35 +7,91 @@ export type GoalDocument = Goal & Document;
 @Schema({ timestamps: true })
 export class Goal {
   @Prop({ required: true })
-  title: string;
+  goalName: string;
+
+  @Prop({ required: true })
+  category: string;
 
   @Prop()
   description: string;
 
   @Prop({ required: true })
-  targetDate: Date;
+  startDate: Date;
+
+  @Prop({ required: true })
+  endDate: Date;
+
+  @Prop()
+  image: string;
+
+  @Prop([String])
+  steps: string[];
+
+  @Prop({ 
+    type: String, 
+    enum: ['checklist', 'days', 'numeric'], 
+    required: true 
+  })
+  trackingType: string;
+
+  @Prop()
+  target: string;
+
+  @Prop({
+    type: {
+      daily: Boolean,
+      weekly: Boolean,
+      beforeDeadline: Boolean
+    }
+  })
+  reminders: {
+    daily: boolean;
+    weekly: boolean;
+    beforeDeadline: boolean;
+  };
+
+  @Prop([String])
+  rewards: string[];
+
+  @Prop({ 
+    type: String, 
+    enum: ['private', 'friends', 'public'], 
+    default: 'private' 
+  })
+  privacy: string;
+
+  @Prop([String])
+  tags: string[];
+
+  @Prop({
+    type: {
+      allowComments: Boolean,
+      showInFeed: Boolean,
+      autoPublishAchievements: Boolean
+    },
+    default: {
+      allowComments: true,
+      showInFeed: true,
+      autoPublishAchievements: false
+    }
+  })
+  publicationSettings: {
+    allowComments: boolean;
+    showInFeed: boolean;
+    autoPublishAchievements: boolean;
+  };
 
   @Prop({ default: false })
   isCompleted: boolean;
 
+  @Prop()
+  goalWorth: string;
+
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   userId: User;
 
-  @Prop({ type: [{ type: Types.ObjectId, ref: 'Goal' }] })
-  subGoals: Goal[];
-
-  @Prop({ default: 0 })
+  @Prop({ default: 0, min: 0, max: 100 })
   progress: number;
-
-  @Prop({ required: true, enum: ['daily', 'weekly', 'monthly', 'yearly'] })
-  frequency: string;
-
-  @Prop({ type: Object })
-  reminderSettings: {
-    isEnabled: boolean;
-    time?: Date;
-    frequency?: string;
-  };
 }
 
 export const GoalSchema = SchemaFactory.createForClass(Goal);
