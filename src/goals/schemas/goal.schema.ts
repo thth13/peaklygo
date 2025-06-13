@@ -27,65 +27,24 @@ export class Goal {
   @Prop([String])
   steps: string[];
 
-  @Prop({ 
-    type: String, 
-    enum: ['checklist', 'days', 'numeric'], 
-    required: true 
-  })
-  trackingType: string;
+  @Prop()
+  reward: string;
 
   @Prop()
-  target: string;
+  consequence: string;
 
   @Prop({
-    type: {
-      daily: Boolean,
-      weekly: Boolean,
-      beforeDeadline: Boolean
-    }
-  })
-  reminders: {
-    daily: boolean;
-    weekly: boolean;
-    beforeDeadline: boolean;
-  };
-
-  @Prop([String])
-  rewards: string[];
-
-  @Prop({ 
-    type: String, 
-    enum: ['private', 'friends', 'public'], 
-    default: 'private' 
+    type: String,
+    enum: ['private', 'friends', 'public'],
+    default: 'private',
   })
   privacy: string;
-
-  @Prop([String])
-  tags: string[];
-
-  @Prop({
-    type: {
-      allowComments: Boolean,
-      showInFeed: Boolean,
-      autoPublishAchievements: Boolean
-    },
-    default: {
-      allowComments: true,
-      showInFeed: true,
-      autoPublishAchievements: false
-    }
-  })
-  publicationSettings: {
-    allowComments: boolean;
-    showInFeed: boolean;
-    autoPublishAchievements: boolean;
-  };
 
   @Prop({ default: false })
   isCompleted: boolean;
 
-  @Prop()
-  goalWorth: string;
+  @Prop({ default: 100, min: 1, max: 500 })
+  value: number;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   userId: User;
