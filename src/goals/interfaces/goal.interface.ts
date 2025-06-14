@@ -1,17 +1,23 @@
 import { Document } from 'mongoose';
 import { User } from 'src/user/schemas/user.schema';
 
+enum PrivaciyStatus {
+  Private = 'private',
+  Friends = 'friends',
+  Public = 'public',
+}
+
 export interface Goal extends Document {
   goalName: string;
   category: string;
   description?: string;
   startDate: Date;
-  endDate: Date;
+  endDate?: Date;
   image?: string;
   steps?: string[];
   reward?: string;
   consequence?: string;
-  privacy: 'private' | 'friends' | 'public';
+  privacy: PrivaciyStatus;
   isCompleted: boolean;
   value: number;
   userId: User;

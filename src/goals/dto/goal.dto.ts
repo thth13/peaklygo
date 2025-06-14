@@ -27,13 +27,13 @@ export class CreateGoalDto {
   @IsOptional()
   description?: string;
 
-  @IsDate()
+  @IsString()
   @Transform(({ value }) => new Date(value))
-  startDate: Date;
+  startDate: string;
 
-  @IsDate()
+  @IsString()
   @Transform(({ value }) => new Date(value))
-  endDate: Date;
+  endDate: string;
 
   @IsString()
   @IsOptional()
@@ -44,8 +44,8 @@ export class CreateGoalDto {
   @IsOptional()
   steps?: string[];
 
-  @IsEnum(['checklist', 'days', 'numeric'])
-  trackingType: string;
+  // @IsEnum(['checklist', 'days', 'numeric'])
+  // trackingType: string;
 
   @IsString()
   @IsOptional()

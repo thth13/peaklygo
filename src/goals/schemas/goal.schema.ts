@@ -18,7 +18,7 @@ export class Goal {
   @Prop({ required: true })
   startDate: Date;
 
-  @Prop({ required: true })
+  @Prop()
   endDate: Date;
 
   @Prop()

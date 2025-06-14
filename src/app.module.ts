@@ -39,6 +39,7 @@ import { GoalsModule } from './goals/goals.module';
     AuthModule,
     UserModule,
     ProfileModule,
+    GoalsModule,
   ],
 })
 export class AppModule {}

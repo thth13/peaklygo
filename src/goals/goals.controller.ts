@@ -10,20 +10,45 @@ import {
   Request,
   HttpCode,
   HttpStatus,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { GoalsService } from './goals.service';
 import { CreateGoalDto, UpdateGoalDto } from './dto/goal.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('goals')
 @UseGuards(JwtAuthGuard)
 export class GoalsController {
   constructor(private readonly goalsService: GoalsService) {}
 
-  @Post()
+  @Post(':userId')
   @HttpCode(HttpStatus.CREATED)
-  async create(@Request() req, @Body() createGoalDto: CreateGoalDto) {
-    return await this.goalsService.create(req.user.userId, createGoalDto);
+  @UseInterceptors(
+    FileInterceptor('goalImage', {
+      limits: {
+        fileSize: 20 * 1024 * 1024, // 20MB in bytes
+      },
+      fileFilter: (_, file, cb) => {
+        if (file.mimetype.match(/\/(jpg|jpeg|png|gif)$/)) {
+          cb(null, true);
+        } else {
+          cb(new Error('Unsupported file type'), false);
+        }
+      },
+    }),
+  )
+  async create(
+    @Request() req,
+    @Body() createGoalDto: any,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return await this.goalsService.create(
+      req.params.userId,
+      createGoalDto,
+      file,
+    );
   }
 
   @Get()

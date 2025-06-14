@@ -8,7 +8,16 @@ import { CreateGoalDto, UpdateGoalDto } from './dto/goal.dto';
 export class GoalsService {
   constructor(@InjectModel(Goal.name) private goalModel: Model<GoalDocument>) {}
 
-  async create(userId: string, createGoalDto: CreateGoalDto): Promise<Goal> {
+  async create(
+    userId: string,
+    createGoalDto: CreateGoalDto,
+    image?: Express.Multer.File,
+  ): Promise<Goal> {
+    if (image) {
+      // make image uploading function
+    }
+
+    console.log(userId, createGoalDto);
     const createdGoal = new this.goalModel({
       ...createGoalDto,
       userId,
