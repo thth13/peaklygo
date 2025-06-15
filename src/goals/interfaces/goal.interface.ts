@@ -13,6 +13,7 @@ export interface Goal extends Document {
   description?: string;
   startDate: Date;
   endDate?: Date;
+  noDeadline?: boolean;
   image?: string;
   steps?: string[];
   reward?: string;

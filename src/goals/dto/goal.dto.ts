@@ -10,9 +10,24 @@ import {
   IsArray,
   Min,
   Max,
+  ValidateNested,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { User } from 'src/user/schemas/user.schema';
+
+class Step {
+  @IsString()
+  @IsNotEmpty()
+  stepName: string;
+
+  @IsBoolean()
+  @IsOptional()
+  isCompleted?: boolean;
+
+  @IsNumber()
+  @IsOptional()
+  progress?: number;
+}
 
 export class CreateGoalDto {
   @IsString()
@@ -35,14 +50,23 @@ export class CreateGoalDto {
   @Transform(({ value }) => new Date(value))
   endDate: string;
 
-  @IsString()
+  @IsBoolean()
+  noDeadline?: boolean;
+
   @IsOptional()
   image?: string;
 
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      return JSON.parse(value);
+    }
+    return value;
+  })
   @IsArray()
-  @IsString({ each: true })
+  @ValidateNested({ each: true })
+  @Type(() => Step)
   @IsOptional()
-  steps?: string[];
+  steps?: Step[];
 
   // @IsEnum(['checklist', 'days', 'numeric'])
   // trackingType: string;
@@ -59,10 +83,13 @@ export class CreateGoalDto {
     beforeDeadline: boolean;
   };
 
-  @IsArray()
-  @IsString({ each: true })
+  @IsString()
   @IsOptional()
-  rewards?: string[];
+  reward?: string;
+
+  @IsString()
+  @IsOptional()
+  consequence?: string;
 
   @IsEnum(['private', 'friends', 'public'])
   @IsOptional()
@@ -128,6 +155,9 @@ export class UpdateGoalDto {
   @IsEnum(['daily', 'weekly', 'monthly', 'yearly'])
   @IsOptional()
   frequency?: string;
+
+  @IsString()
+  value: string;
 
   @IsObject()
   @IsOptional()

@@ -1,21 +1,30 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import sharp from 'sharp';
+import { InjectS3, S3 } from 'nestjs-s3';
+import { randomUUID } from 'crypto';
+import { DeleteObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { Goal, GoalDocument } from './schemas/goal.schema';
 import { CreateGoalDto, UpdateGoalDto } from './dto/goal.dto';
 
 @Injectable()
 export class GoalsService {
-  constructor(@InjectModel(Goal.name) private goalModel: Model<GoalDocument>) {}
+  constructor(
+    @InjectModel(Goal.name) private goalModel: Model<GoalDocument>,
+    @InjectS3() private readonly s3: S3,
+  ) {}
 
   async create(
     userId: string,
     createGoalDto: CreateGoalDto,
     image?: Express.Multer.File,
   ): Promise<Goal> {
-    if (image) {
-      // make image uploading function
-    }
+    console.log(4);
+    // if (image) {
+    //   console.log;
+    //   createGoalDto.image = await this.compressAndUploadImage(image);
+    // }
 
     console.log(userId, createGoalDto);
     const createdGoal = new this.goalModel({
@@ -78,5 +87,25 @@ export class GoalsService {
       throw new NotFoundException('Goal not found');
     }
     return goal;
+  }
+
+  private async compressAndUploadImage(image: Express.Multer.File) {
+    const uniqueFileName = `${randomUUID()}`;
+    const buffer = await sharp(image.buffer).webp({ quality: 50 }).toBuffer();
+
+    const params = {
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: uniqueFileName,
+      Body: buffer,
+      ContentType: image.mimetype,
+    };
+
+    try {
+      await this.s3.send(new PutObjectCommand(params));
+    } catch (err) {
+      console.log(err);
+    }
+
+    return params.Key;
   }
 }

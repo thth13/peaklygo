@@ -22,11 +22,10 @@ import { FileInterceptor } from '@nestjs/platform-express';
 @UseGuards(JwtAuthGuard)
 export class GoalsController {
   constructor(private readonly goalsService: GoalsService) {}
-
   @Post(':userId')
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(
-    FileInterceptor('goalImage', {
+    FileInterceptor('image', {
       limits: {
         fileSize: 20 * 1024 * 1024, // 20MB in bytes
       },
@@ -41,9 +40,10 @@ export class GoalsController {
   )
   async create(
     @Request() req,
-    @Body() createGoalDto: any,
+    @Body() createGoalDto: CreateGoalDto,
     @UploadedFile() file: Express.Multer.File,
   ) {
+    console.log('3');
     return await this.goalsService.create(
       req.params.userId,
       createGoalDto,

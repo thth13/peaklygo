@@ -23,8 +23,8 @@ import { GoalsModule } from './goals/goals.module';
       inject: [ConfigService],
     }),
     ServeStaticModule.forRoot({
-      rootPath: join(process.cwd(), 'avatars'),
-      serveRoot: '/avatar',
+      rootPath: join(process.cwd(), 'images'),
+      serveRoot: '/images',
     }),
     S3Module.forRoot({
       config: {
