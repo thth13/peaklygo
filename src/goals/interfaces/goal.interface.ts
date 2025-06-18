@@ -7,6 +7,12 @@ enum PrivaciyStatus {
   Public = 'public',
 }
 
+export interface Step {
+  id: string;
+  text: string;
+  isCompleted?: boolean;
+}
+
 export interface Goal extends Document {
   goalName: string;
   category: string;
@@ -15,7 +21,7 @@ export interface Goal extends Document {
   endDate?: Date;
   noDeadline?: boolean;
   image?: string;
-  steps?: string[];
+  steps: Step[];
   reward?: string;
   consequence?: string;
   privacy: PrivaciyStatus;

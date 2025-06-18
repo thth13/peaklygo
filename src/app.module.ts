@@ -24,7 +24,7 @@ import { GoalsModule } from './goals/goals.module';
     }),
     ServeStaticModule.forRoot({
       rootPath: join(process.cwd(), 'images'),
-      serveRoot: '/images',
+      serveRoot: '/image',
     }),
     S3Module.forRoot({
       config: {

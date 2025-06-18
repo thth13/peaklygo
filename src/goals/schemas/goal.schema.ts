@@ -24,8 +24,8 @@ export class Goal {
   @Prop()
   image: string;
 
-  @Prop([String])
-  steps: string[];
+  @Prop({ type: [Object], default: [] })
+  steps: Step[];
 
   @Prop()
   reward: string;
@@ -54,3 +54,15 @@ export class Goal {
 }
 
 export const GoalSchema = SchemaFactory.createForClass(Goal);
+
+export class Step {
+  @Prop({ required: true })
+  id: string;
+
+  @Prop({ required: true })
+  text: string;
+
+  @Prop({ default: false })
+  isCompleted: boolean;
+}
+export const StepSchema = SchemaFactory.createForClass(Step);

@@ -12,21 +12,14 @@ import {
   Max,
   ValidateNested,
 } from 'class-validator';
-import { Transform, Type } from 'class-transformer';
-import { User } from 'src/user/schemas/user.schema';
+import { plainToInstance, Transform, Type } from 'class-transformer';
 
-class Step {
+class StepDto {
   @IsString()
-  @IsNotEmpty()
-  stepName: string;
+  id: string;
 
-  @IsBoolean()
-  @IsOptional()
-  isCompleted?: boolean;
-
-  @IsNumber()
-  @IsOptional()
-  progress?: number;
+  @IsString()
+  text: string;
 }
 
 export class CreateGoalDto {
@@ -42,15 +35,17 @@ export class CreateGoalDto {
   @IsOptional()
   description?: string;
 
-  @IsString()
+  @IsDate()
   @Transform(({ value }) => new Date(value))
-  startDate: string;
+  startDate: Date;
 
-  @IsString()
+  @IsDate()
   @Transform(({ value }) => new Date(value))
-  endDate: string;
+  endDate: Date;
 
   @IsBoolean()
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
   noDeadline?: boolean;
 
   @IsOptional()
@@ -58,15 +53,20 @@ export class CreateGoalDto {
 
   @Transform(({ value }) => {
     if (typeof value === 'string') {
-      return JSON.parse(value);
+      try {
+        value = JSON.parse(value);
+      } catch {
+        return [];
+      }
     }
-    return value;
+    return Array.isArray(value)
+      ? value.map((item) => plainToInstance(StepDto, item))
+      : [];
   })
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => Step)
-  @IsOptional()
-  steps?: Step[];
+  @Type(() => StepDto)
+  steps: StepDto[];
 
   // @IsEnum(['checklist', 'days', 'numeric'])
   // trackingType: string;
@@ -101,7 +101,6 @@ export class CreateGoalDto {
   tags?: string[];
 
   @IsObject()
-  @IsOptional()
   publicationSettings?: {
     allowComments: boolean;
     showInFeed: boolean;
@@ -119,9 +118,6 @@ export class CreateGoalDto {
   @IsString()
   @IsOptional()
   goalWorth?: string;
-
-  @IsNotEmpty()
-  userId: User;
 
   @IsNumber()
   @Min(0)

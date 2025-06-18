@@ -43,7 +43,6 @@ export class GoalsController {
     @Body() createGoalDto: CreateGoalDto,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    console.log('3');
     return await this.goalsService.create(
       req.params.userId,
       createGoalDto,

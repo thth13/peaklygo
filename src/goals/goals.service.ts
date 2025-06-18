@@ -1,10 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import sharp from 'sharp';
+import * as sharp from 'sharp';
 import { InjectS3, S3 } from 'nestjs-s3';
 import { randomUUID } from 'crypto';
-import { DeleteObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { Goal, GoalDocument } from './schemas/goal.schema';
 import { CreateGoalDto, UpdateGoalDto } from './dto/goal.dto';
 
@@ -20,17 +20,15 @@ export class GoalsService {
     createGoalDto: CreateGoalDto,
     image?: Express.Multer.File,
   ): Promise<Goal> {
-    console.log(4);
-    // if (image) {
-    //   console.log;
-    //   createGoalDto.image = await this.compressAndUploadImage(image);
-    // }
+    if (image) {
+      createGoalDto.image = await this.compressAndUploadImage(image);
+    }
 
-    console.log(userId, createGoalDto);
     const createdGoal = new this.goalModel({
       ...createGoalDto,
       userId,
     });
+
     return createdGoal.save();
   }
 
@@ -91,6 +89,7 @@ export class GoalsService {
 
   private async compressAndUploadImage(image: Express.Multer.File) {
     const uniqueFileName = `${randomUUID()}`;
+
     const buffer = await sharp(image.buffer).webp({ quality: 50 }).toBuffer();
 
     const params = {
