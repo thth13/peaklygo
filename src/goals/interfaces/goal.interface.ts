@@ -1,5 +1,4 @@
-import { Document } from 'mongoose';
-import { User } from 'src/user/schemas/user.schema';
+import { Document, Types } from 'mongoose';
 
 enum PrivaciyStatus {
   Private = 'private',
@@ -27,7 +26,7 @@ export interface Goal extends Document {
   privacy: PrivaciyStatus;
   isCompleted: boolean;
   value: number;
-  userId: User;
+  userId: Types.ObjectId;
   progress: number;
   createdAt: Date;
   updatedAt: Date;

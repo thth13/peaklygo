@@ -47,7 +47,7 @@ export class Goal {
   value: number;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  userId: User;
+  userId: Types.ObjectId;
 
   @Prop({ default: 0, min: 0, max: 100 })
   progress: number;

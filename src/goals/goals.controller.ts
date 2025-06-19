@@ -19,10 +19,9 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('goals')
-@UseGuards(JwtAuthGuard)
 export class GoalsController {
   constructor(private readonly goalsService: GoalsService) {}
-  @Post(':userId')
+  @Post('')
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(
     FileInterceptor('image', {
@@ -38,22 +37,18 @@ export class GoalsController {
       },
     }),
   )
+  @UseGuards(JwtAuthGuard)
   async create(
-    @Request() req,
     @Body() createGoalDto: CreateGoalDto,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    return await this.goalsService.create(
-      req.params.userId,
-      createGoalDto,
-      file,
-    );
+    return await this.goalsService.create(createGoalDto, file);
   }
 
-  @Get()
+  @Get('/userGoals/:userId')
   @HttpCode(HttpStatus.OK)
-  async findAll(@Request() req) {
-    return await this.goalsService.findAll(req.user.userId);
+  async getUserGoals(@Param('userId') userId: string) {
+    return await this.goalsService.getUserGoals(userId);
   }
 
   @Get(':id')

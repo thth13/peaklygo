@@ -35,6 +35,9 @@ export class CreateGoalDto {
   @IsOptional()
   description?: string;
 
+  @IsString()
+  userId: string;
+
   @IsDate()
   @Transform(({ value }) => new Date(value))
   startDate: Date;

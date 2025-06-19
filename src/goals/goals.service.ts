@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import * as sharp from 'sharp';
 import { InjectS3, S3 } from 'nestjs-s3';
 import { randomUUID } from 'crypto';
@@ -16,7 +16,6 @@ export class GoalsService {
   ) {}
 
   async create(
-    userId: string,
     createGoalDto: CreateGoalDto,
     image?: Express.Multer.File,
   ): Promise<Goal> {
@@ -26,13 +25,13 @@ export class GoalsService {
 
     const createdGoal = new this.goalModel({
       ...createGoalDto,
-      userId,
+      userId: new Types.ObjectId(createGoalDto.userId),
     });
 
     return createdGoal.save();
   }
 
-  async findAll(userId: string): Promise<Goal[]> {
+  async getUserGoals(userId: string): Promise<Goal[]> {
     return this.goalModel.find({ userId }).exec();
   }
 
