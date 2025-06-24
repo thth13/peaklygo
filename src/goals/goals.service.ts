@@ -32,7 +32,7 @@ export class GoalsService {
   }
 
   async getUserGoals(userId: string): Promise<Goal[]> {
-    return this.goalModel.find({ userId }).exec();
+    return this.goalModel.find({ userId: new Types.ObjectId(userId) }).exec();
   }
 
   async findOne(userId: string, goalId: string): Promise<Goal> {
