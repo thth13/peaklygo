@@ -53,8 +53,8 @@ export class GoalsController {
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  async findOne(@Request() req, @Param('id') id: string) {
-    return await this.goalsService.findOne(req.user.userId, id);
+  async findOne(@Param('id') id: string) {
+    return await this.goalsService.findOne(id);
   }
 
   @Put(':id')

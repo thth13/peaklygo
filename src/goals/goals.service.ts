@@ -35,11 +35,13 @@ export class GoalsService {
     return this.goalModel.find({ userId: new Types.ObjectId(userId) }).exec();
   }
 
-  async findOne(userId: string, goalId: string): Promise<Goal> {
-    const goal = await this.goalModel.findOne({ _id: goalId, userId }).exec();
+  async findOne(goalId: string): Promise<Goal> {
+    const goal = await this.goalModel.findOne({ _id: goalId }).exec();
+
     if (!goal) {
       throw new NotFoundException('Goal not found');
     }
+
     return goal;
   }
 
