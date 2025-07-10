@@ -43,8 +43,9 @@ export class CreateGoalDto {
   startDate: Date;
 
   @IsDate()
+  @IsOptional()
   @Transform(({ value }) => new Date(value))
-  endDate: Date;
+  endDate?: Date;
 
   @IsBoolean()
   @IsOptional()

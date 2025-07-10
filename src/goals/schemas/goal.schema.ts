@@ -19,7 +19,7 @@ export class Goal {
   startDate: Date;
 
   @Prop()
-  endDate: Date;
+  endDate?: Date;
 
   @Prop()
   image: string;
