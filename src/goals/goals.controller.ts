@@ -86,4 +86,20 @@ export class GoalsController {
       progress,
     );
   }
+
+  @Put(':goalId/steps/:stepId/complete')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async markStepCompleted(
+    @Request() req,
+    @Param('goalId') goalId: string,
+    @Param('stepId') stepId: string,
+    @Body('isCompleted') isCompleted: boolean,
+  ) {
+    return await this.goalsService.markStepCompleted(
+      goalId,
+      stepId,
+      isCompleted,
+    );
+  }
 }

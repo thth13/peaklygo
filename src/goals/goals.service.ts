@@ -88,6 +88,31 @@ export class GoalsService {
     return goal;
   }
 
+  async markStepCompleted(
+    goalId: string,
+    stepId: string,
+    isCompleted: boolean,
+  ): Promise<Goal> {
+    const goal = await this.goalModel
+      .findOneAndUpdate(
+        {
+          _id: goalId,
+          'steps.id': stepId,
+        },
+        {
+          $set: { 'steps.$.isCompleted': isCompleted },
+        },
+        { new: true },
+      )
+      .exec();
+
+    if (!goal) {
+      throw new NotFoundException('Goal or step not found');
+    }
+
+    return goal;
+  }
+
   private async compressAndUploadImage(image: Express.Multer.File) {
     const uniqueFileName = `${randomUUID()}`;
 

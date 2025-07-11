@@ -20,6 +20,10 @@ class StepDto {
 
   @IsString()
   text: string;
+
+  @IsBoolean()
+  @IsOptional()
+  isCompleted?: boolean = false;
 }
 
 export class CreateGoalDto {
