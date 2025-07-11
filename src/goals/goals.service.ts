@@ -110,7 +110,18 @@ export class GoalsService {
       throw new NotFoundException('Goal or step not found');
     }
 
-    return goal;
+    // Пересчитываем прогресс на основе выполненных шагов
+    const totalSteps = goal.steps.length;
+    const completedSteps = goal.steps.filter((step) => step.isCompleted).length;
+    const newProgress =
+      totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+
+    // Обновляем прогресс в цели
+    const updatedGoal = await this.goalModel
+      .findByIdAndUpdate(goalId, { progress: newProgress }, { new: true })
+      .exec();
+
+    return updatedGoal;
   }
 
   private async compressAndUploadImage(image: Express.Multer.File) {
