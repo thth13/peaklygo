@@ -21,6 +21,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 @Controller('goals')
 export class GoalsController {
   constructor(private readonly goalsService: GoalsService) {}
+
   @Post('')
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(
@@ -47,18 +48,21 @@ export class GoalsController {
 
   @Get('/userGoals/:userId')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
   async getUserGoals(@Param('userId') userId: string) {
     return await this.goalsService.getUserGoals(userId);
   }
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
   async findOne(@Param('id') id: string) {
     return await this.goalsService.findOne(id);
   }
 
   @Put(':id')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
   async update(
     @Request() req,
     @Param('id') id: string,
@@ -69,12 +73,14 @@ export class GoalsController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard)
   async remove(@Request() req, @Param('id') id: string) {
-    await this.goalsService.remove(req.user.userId, id);
+    return await this.goalsService.remove(req.user.userId, id);
   }
 
   @Put(':id/progress')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
   async updateProgress(
     @Request() req,
     @Param('id') id: string,

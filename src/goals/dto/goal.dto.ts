@@ -124,8 +124,7 @@ export class CreateGoalDto {
   isCompleted?: boolean = false;
 
   @IsString()
-  @IsOptional()
-  goalWorth?: string;
+  value: string;
 
   @IsNumber()
   @Min(0)

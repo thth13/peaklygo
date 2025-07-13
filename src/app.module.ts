@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { ProfileModule } from './profile/profile.module';
 import { GoalsModule } from './goals/goals.module';
+import { ProgressEntryModule } from './progress-entry/progress-entry.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { GoalsModule } from './goals/goals.module';
     UserModule,
     ProfileModule,
     GoalsModule,
+    ProgressEntryModule,
   ],
 })
 export class AppModule {}
