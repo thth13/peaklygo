@@ -48,14 +48,12 @@ export class GoalsController {
 
   @Get('/userGoals/:userId')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
   async getUserGoals(@Param('userId') userId: string) {
     return await this.goalsService.getUserGoals(userId);
   }
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
   async findOne(@Param('id') id: string) {
     return await this.goalsService.findOne(id);
   }

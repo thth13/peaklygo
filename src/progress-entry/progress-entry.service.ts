@@ -59,7 +59,6 @@ export class ProgressEntryService {
     const entries = await this.progressEntryModel
       .find({ goalId: new Types.ObjectId(goalId) })
       .populate('likes', 'username')
-      .populate('userId', 'username')
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
@@ -99,12 +98,11 @@ export class ProgressEntryService {
 
     const updatedEntry = await this.progressEntryModel
       .findOneAndUpdate(
-        { _id: entryId, userId: new Types.ObjectId(userId) },
+        { _id: entryId },
         { ...updateProgressEntryDto, isEdited: true },
         { new: true },
       )
       .populate('likes', 'username')
-      .populate('userId', 'username')
       .exec();
 
     if (!updatedEntry) {
@@ -148,7 +146,6 @@ export class ProgressEntryService {
         { new: true },
       )
       .populate('likes', 'username')
-      .populate('userId', 'username')
       .exec();
 
     return updatedEntry;
@@ -241,7 +238,7 @@ export class ProgressEntryService {
         { new: true },
       )
       .populate('likes', 'username')
-      .populate('userId', 'username')
+      .populate('userId', 'username') // Это оставляем - для Comment поле userId существует
       .exec();
 
     return updatedComment;
