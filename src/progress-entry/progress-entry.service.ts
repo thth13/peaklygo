@@ -40,10 +40,12 @@ export class ProgressEntryService {
       throw new NotFoundException('Goal not found or access denied');
     }
 
+    const dayOfGoal = this.calculateDayOfGoal(goal.startDate, new Date());
+
     const progressEntry = new this.progressEntryModel({
       content: createProgressEntryDto.content,
       goalId: new Types.ObjectId(createProgressEntryDto.goalId),
-      // убираем userId: new Types.ObjectId(userId),
+      day: dayOfGoal,
     });
 
     return progressEntry.save();
@@ -243,5 +245,11 @@ export class ProgressEntryService {
       .exec();
 
     return updatedComment;
+  }
+
+  private calculateDayOfGoal(goalStartDate: Date, currentDate: Date): number {
+    const diffTime = currentDate.getTime() - goalStartDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    return Math.max(1, diffDays + 1);
   }
 }

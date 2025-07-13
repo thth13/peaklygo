@@ -16,6 +16,9 @@ export class ProgressEntry {
 
   @Prop({ default: false })
   isEdited: boolean;
+
+  @Prop({ required: true })
+  day: number;
 }
 
 export const ProgressEntrySchema = SchemaFactory.createForClass(ProgressEntry);

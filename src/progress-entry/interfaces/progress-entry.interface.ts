@@ -7,4 +7,5 @@ export interface ProgressEntry extends Document {
   isEdited: boolean;
   createdAt: Date;
   updatedAt: Date;
+  day: number;
 }
