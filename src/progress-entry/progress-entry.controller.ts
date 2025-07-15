@@ -21,12 +21,12 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UserId } from '../auth/decorators/user-id.decorator';
 
 @Controller('progress-entries')
-@UseGuards(JwtAuthGuard)
 export class ProgressEntryController {
   constructor(private readonly progressEntryService: ProgressEntryService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard)
   async create(
     @UserId() userId: string,
     @Body() createProgressEntryDto: CreateProgressEntryDto,
@@ -46,6 +46,7 @@ export class ProgressEntryController {
 
   @Put(':id')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
   async update(
     @UserId() userId: string,
     @Param('id') id: string,
@@ -62,12 +63,14 @@ export class ProgressEntryController {
 
   @Post(':id/like')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
   async toggleLike(@UserId() userId: string, @Param('id') id: string) {
     return this.progressEntryService.toggleLike(userId, id);
   }
 
   @Post(':id/comments')
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard)
   async createComment(
     @UserId() userId: string,
     @Param('id') progressEntryId: string,
@@ -92,6 +95,7 @@ export class ProgressEntryController {
 
   @Put('comments/:commentId')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
   async updateComment(
     @UserId() userId: string,
     @Param('commentId') commentId: string,

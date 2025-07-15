@@ -86,7 +86,6 @@ export class ProgressEntryService {
     entryId: string,
     updateProgressEntryDto: UpdateProgressEntryDto,
   ): Promise<ProgressEntry> {
-    // Нужно проверить права через Goal
     const entry = await this.progressEntryModel
       .findById(entryId)
       .populate<{ goalId: Goal }>('goalId')
@@ -121,7 +120,6 @@ export class ProgressEntryService {
       throw new NotFoundException('Progress entry not found');
     }
 
-    // Удаляем связанные комментарии
     await this.commentModel
       .deleteMany({ progressEntryId: new Types.ObjectId(entryId) })
       .exec();
