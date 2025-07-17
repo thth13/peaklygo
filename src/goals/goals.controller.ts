@@ -60,13 +60,27 @@ export class GoalsController {
 
   @Put(':id')
   @HttpCode(HttpStatus.OK)
+  @UseInterceptors(
+    FileInterceptor('image', {
+      limits: {
+        fileSize: 20 * 1024 * 1024, // 20MB in bytes
+      },
+      fileFilter: (_, file, cb) => {
+        if (file.mimetype.match(/\/(jpg|jpeg|png|gif)$/)) {
+          cb(null, true);
+        } else {
+          cb(new Error('Unsupported file type'), false);
+        }
+      },
+    }),
+  )
   @UseGuards(JwtAuthGuard)
   async update(
-    @Request() req,
     @Param('id') id: string,
     @Body() updateGoalDto: UpdateGoalDto,
+    @UploadedFile() file?: Express.Multer.File,
   ) {
-    return await this.goalsService.update(req.user.userId, id, updateGoalDto);
+    return await this.goalsService.update(id, updateGoalDto, file);
   }
 
   @Delete(':id')

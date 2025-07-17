@@ -13,6 +13,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { plainToInstance, Transform, Type } from 'class-transformer';
+import { PartialType } from '@nestjs/mapped-types';
 
 class StepDto {
   @IsString()
@@ -133,40 +134,4 @@ export class CreateGoalDto {
   progress?: number = 0;
 }
 
-export class UpdateGoalDto {
-  @IsString()
-  @IsOptional()
-  title?: string;
-
-  @IsString()
-  @IsOptional()
-  description?: string;
-
-  @IsDate()
-  @IsOptional()
-  @Transform(({ value }) => new Date(value))
-  targetDate?: Date;
-
-  @IsBoolean()
-  @IsOptional()
-  isCompleted?: boolean;
-
-  @IsNumber()
-  @IsOptional()
-  progress?: number;
-
-  @IsEnum(['daily', 'weekly', 'monthly', 'yearly'])
-  @IsOptional()
-  frequency?: string;
-
-  @IsString()
-  value: string;
-
-  @IsObject()
-  @IsOptional()
-  reminderSettings?: {
-    isEnabled: boolean;
-    time?: Date;
-    frequency?: string;
-  };
-}
+export class UpdateGoalDto extends PartialType(CreateGoalDto) {}

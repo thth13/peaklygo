@@ -46,12 +46,25 @@ export class GoalsService {
   }
 
   async update(
-    userId: string,
     goalId: string,
     updateGoalDto: UpdateGoalDto,
+    image?: Express.Multer.File,
   ): Promise<Goal> {
+    const userId = new Types.ObjectId(updateGoalDto.userId);
+
+    if (image) {
+      updateGoalDto.image = await this.compressAndUploadImage(image);
+    }
+
     const updatedGoal = await this.goalModel
-      .findOneAndUpdate({ _id: goalId, userId }, updateGoalDto, { new: true })
+      .findOneAndUpdate(
+        {
+          _id: goalId,
+          userId,
+        },
+        { ...updateGoalDto, userId },
+        { new: true },
+      )
       .exec();
 
     if (!updatedGoal) {
