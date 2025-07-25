@@ -12,6 +12,7 @@ import {
 } from './dto/progress-entry.dto';
 import { CreateCommentDto, UpdateCommentDto } from './dto/comment.dto';
 import { Goal, GoalDocument } from '../goals/schemas/goal.schema';
+import { Profile, ProfileDocument } from '../profile/schemas/profile.schema';
 
 @Injectable()
 export class ProgressEntryService {
@@ -22,6 +23,8 @@ export class ProgressEntryService {
     private commentModel: Model<CommentDocument>,
     @InjectModel(Goal.name)
     private goalModel: Model<GoalDocument>,
+    @InjectModel(Profile.name)
+    private profileModel: Model<ProfileDocument>,
   ) {}
 
   async create(
@@ -161,13 +164,19 @@ export class ProgressEntryService {
       throw new NotFoundException('Progress entry not found');
     }
 
+    const profile = await this.profileModel
+      .findOne({ user: new Types.ObjectId(userId) })
+      .select('_id')
+      .exec();
+
     const comment = new this.commentModel({
       ...createCommentDto,
       progressEntryId: new Types.ObjectId(progressEntryId),
-      userId: new Types.ObjectId(userId),
+      profile: new Types.ObjectId(profile._id),
     });
 
-    return comment.save();
+    await comment.save();
+    return comment.populate('profile', 'name avatar');
   }
 
   async getComments(
@@ -177,8 +186,7 @@ export class ProgressEntryService {
   ): Promise<Comment[]> {
     return this.commentModel
       .find({ progressEntryId: new Types.ObjectId(progressEntryId) })
-      .populate('userId', 'username')
-      .populate('likes', 'username')
+      .populate('profile', 'name avatar')
       .sort({ createdAt: 1 })
       .skip((page - 1) * limit)
       .limit(limit)
@@ -186,17 +194,16 @@ export class ProgressEntryService {
   }
 
   async updateComment(
-    userId: string,
     commentId: string,
     updateCommentDto: UpdateCommentDto,
   ): Promise<Comment> {
     const updatedComment = await this.commentModel
       .findOneAndUpdate(
-        { _id: commentId, userId: new Types.ObjectId(userId) },
+        { _id: commentId },
         { ...updateCommentDto, isEdited: true },
         { new: true },
       )
-      .populate('userId', 'username')
+      .populate('profile', 'username avatar')
       .populate('likes', 'username')
       .exec();
 
@@ -218,25 +225,28 @@ export class ProgressEntryService {
   }
 
   async toggleCommentLike(userId: string, commentId: string): Promise<Comment> {
-    const userObjectId = new Types.ObjectId(userId);
+    const profile = await this.profileModel
+      .findOne({ userId: new Types.ObjectId(userId) })
+      .select('_id')
+      .exec();
 
     const comment = await this.commentModel.findById(commentId).exec();
     if (!comment) {
       throw new NotFoundException('Comment not found');
     }
 
-    const hasLiked = comment.likes.some((id) => id.equals(userObjectId));
+    const hasLiked = comment.likes.some((id) => id.equals(profile._id));
 
     const updatedComment = await this.commentModel
       .findByIdAndUpdate(
         commentId,
         hasLiked
-          ? { $pull: { likes: userObjectId } }
-          : { $addToSet: { likes: userObjectId } },
+          ? { $pull: { likes: profile._id } }
+          : { $addToSet: { likes: profile._id } },
         { new: true },
       )
       .populate('likes', 'username')
-      .populate('userId', 'username') // Это оставляем - для Comment поле userId существует
+      .populate('profile', 'username')
       .exec();
 
     return updatedComment;

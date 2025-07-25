@@ -97,15 +97,10 @@ export class ProgressEntryController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   async updateComment(
-    @UserId() userId: string,
     @Param('commentId') commentId: string,
     @Body() updateCommentDto: UpdateCommentDto,
   ) {
-    return this.progressEntryService.updateComment(
-      userId,
-      commentId,
-      updateCommentDto,
-    );
+    return this.progressEntryService.updateComment(commentId, updateCommentDto);
   }
 
   @Delete('comments/:commentId')
