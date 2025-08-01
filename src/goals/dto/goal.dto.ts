@@ -135,3 +135,9 @@ export class CreateGoalDto {
 }
 
 export class UpdateGoalDto extends PartialType(CreateGoalDto) {}
+
+export class CreateStepDto {
+  @IsString()
+  @IsNotEmpty()
+  text: string;
+}

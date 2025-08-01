@@ -6,7 +6,7 @@ import { InjectS3, S3 } from 'nestjs-s3';
 import { randomUUID } from 'crypto';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { Goal, GoalDocument } from './schemas/goal.schema';
-import { CreateGoalDto, UpdateGoalDto } from './dto/goal.dto';
+import { CreateGoalDto, UpdateGoalDto, CreateStepDto } from './dto/goal.dto';
 
 @Injectable()
 export class GoalsService {
@@ -156,5 +156,41 @@ export class GoalsService {
     }
 
     return params.Key;
+  }
+
+  async createStep(
+    goalId: string,
+    createStepDto: CreateStepDto,
+  ): Promise<Goal> {
+    const goal = await this.goalModel.findById(goalId).exec();
+
+    if (!goal) {
+      throw new NotFoundException('Goal not found');
+    }
+
+    const newStep = {
+      id: randomUUID(),
+      text: createStepDto.text,
+      isCompleted: false,
+    };
+
+    goal.steps.push(newStep);
+    return goal.save();
+  }
+
+  async deleteStep(goalId: string, stepId: string): Promise<Goal> {
+    const goal = await this.goalModel.findById(goalId).exec();
+
+    if (!goal) {
+      throw new NotFoundException('Goal not found');
+    }
+
+    const stepIndex = goal.steps.findIndex((step) => step.id === stepId);
+    if (stepIndex === -1) {
+      throw new NotFoundException('Step not found');
+    }
+
+    goal.steps.splice(stepIndex, 1);
+    return goal.save();
   }
 }

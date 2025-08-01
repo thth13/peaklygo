@@ -14,7 +14,7 @@ import {
   UploadedFile,
 } from '@nestjs/common';
 import { GoalsService } from './goals.service';
-import { CreateGoalDto, UpdateGoalDto } from './dto/goal.dto';
+import { CreateGoalDto, UpdateGoalDto, CreateStepDto } from './dto/goal.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 
@@ -119,5 +119,25 @@ export class GoalsController {
       stepId,
       isCompleted,
     );
+  }
+
+  @Post(':goalId/steps')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard)
+  async createStep(
+    @Param('goalId') goalId: string,
+    @Body() createStepDto: CreateStepDto,
+  ) {
+    return await this.goalsService.createStep(goalId, createStepDto);
+  }
+
+  @Delete(':goalId/steps/:stepId')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async deleteStep(
+    @Param('goalId') goalId: string,
+    @Param('stepId') stepId: string,
+  ) {
+    return await this.goalsService.deleteStep(goalId, stepId);
   }
 }
