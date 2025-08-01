@@ -13,6 +13,7 @@ import {
 import { CreateCommentDto, UpdateCommentDto } from './dto/comment.dto';
 import { Goal, GoalDocument } from '../goals/schemas/goal.schema';
 import { Profile, ProfileDocument } from '../profile/schemas/profile.schema';
+import { ActivityType } from 'src/goals/interfaces/goal.interface';
 
 @Injectable()
 export class ProgressEntryService {
@@ -31,12 +32,22 @@ export class ProgressEntryService {
     userId: string,
     createProgressEntryDto: CreateProgressEntryDto,
   ): Promise<ProgressEntry> {
-    // Проверяем, что пользователь - владелец цели
     const goal = await this.goalModel
-      .findOne({
-        _id: createProgressEntryDto.goalId,
-        userId: new Types.ObjectId(userId),
-      })
+      .findOneAndUpdate(
+        {
+          _id: createProgressEntryDto.goalId,
+          userId: new Types.ObjectId(userId),
+        },
+        {
+          $push: {
+            activity: {
+              activityType: ActivityType.ProgressEntry,
+              date: new Date(),
+            },
+          },
+        },
+        { new: true },
+      )
       .exec();
 
     if (!goal) {

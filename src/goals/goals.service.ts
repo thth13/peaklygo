@@ -7,6 +7,7 @@ import { randomUUID } from 'crypto';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { Goal, GoalDocument } from './schemas/goal.schema';
 import { CreateGoalDto, UpdateGoalDto, CreateStepDto } from './dto/goal.dto';
+import { ActivityType } from './interfaces/goal.interface';
 
 @Injectable()
 export class GoalsService {
@@ -62,7 +63,15 @@ export class GoalsService {
           _id: goalId,
           userId,
         },
-        { ...updateGoalDto, userId },
+        {
+          $set: { ...updateGoalDto, userId },
+          $push: {
+            activity: {
+              activityType: ActivityType.EditedGoal,
+              date: new Date(),
+            },
+          },
+        },
         { new: true },
       )
       .exec();
@@ -114,6 +123,14 @@ export class GoalsService {
         },
         {
           $set: { 'steps.$.isCompleted': isCompleted },
+          $push: {
+            activity: {
+              activityType: isCompleted
+                ? ActivityType.MarkStep
+                : ActivityType.UnmarkStep,
+              date: new Date(),
+            },
+          },
         },
         { new: true },
       )

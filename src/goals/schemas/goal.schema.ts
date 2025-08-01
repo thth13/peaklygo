@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { User } from 'src/user/schemas/user.schema';
+import { ActivityType } from '../interfaces/goal.interface';
 
 export type GoalDocument = Goal & Document;
 
@@ -51,6 +51,9 @@ export class Goal {
 
   @Prop({ default: 0, min: 0, max: 100 })
   progress: number;
+
+  @Prop({ type: [Object], default: [] })
+  activity: Activity[];
 }
 
 export const GoalSchema = SchemaFactory.createForClass(Goal);
@@ -66,3 +69,12 @@ export class Step {
   isCompleted: boolean;
 }
 export const StepSchema = SchemaFactory.createForClass(Step);
+
+export class Activity {
+  @Prop({ required: true })
+  activityType: ActivityType;
+
+  @Prop({ required: true, default: Date.now })
+  date: Date;
+}
+export const ActivitySchema = SchemaFactory.createForClass(Activity);

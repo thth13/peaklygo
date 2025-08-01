@@ -12,6 +12,20 @@ export interface Step {
   isCompleted?: boolean;
 }
 
+export enum ActivityType {
+  ProgressEntry = 'progressEntry',
+  MarkStep = 'markStep',
+  UnmarkStep = 'unmarkStep',
+  UpdatedDeadline = 'updatedDeadline',
+  EditedGoal = 'editedGoal',
+  CompletedGoal = 'completedGoal',
+}
+
+export interface Activity {
+  activityType: ActivityType;
+  date: Date;
+}
+
 export interface Goal extends Document {
   goalName: string;
   category: string;
@@ -21,6 +35,7 @@ export interface Goal extends Document {
   noDeadline?: boolean;
   image?: string;
   steps: Step[];
+  activity: Activity[];
   reward?: string;
   consequence?: string;
   privacy: PrivaciyStatus;
