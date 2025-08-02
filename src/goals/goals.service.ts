@@ -91,22 +91,15 @@ export class GoalsService {
     }
   }
 
-  async updateProgress(
-    userId: string,
-    goalId: string,
-    progress: number,
-  ): Promise<Goal> {
+  async completeGoal(goalId: string): Promise<Goal> {
     const goal = await this.goalModel
-      .findOneAndUpdate(
-        { _id: goalId, userId },
-        { progress: Math.min(Math.max(progress, 0), 100) },
-        { new: true },
-      )
+      .findOneAndUpdate({ _id: goalId }, { isCompleted: true }, { new: true })
       .exec();
 
     if (!goal) {
       throw new NotFoundException('Goal not found');
     }
+
     return goal;
   }
 

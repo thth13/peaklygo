@@ -90,19 +90,11 @@ export class GoalsController {
     return await this.goalsService.remove(req.user.userId, id);
   }
 
-  @Put(':id/progress')
+  @Put(':id/completeGoal')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
-  async updateProgress(
-    @Request() req,
-    @Param('id') id: string,
-    @Body('progress') progress: number,
-  ) {
-    return await this.goalsService.updateProgress(
-      req.user.userId,
-      id,
-      progress,
-    );
+  async completeGoal(@Param('id') id: string) {
+    return await this.goalsService.completeGoal(id);
   }
 
   @Put(':goalId/steps/:stepId/complete')
