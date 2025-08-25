@@ -83,8 +83,10 @@ export class GoalsService {
   }
 
   async remove(userId: string, goalId: string): Promise<void> {
+    const userObjectId = new Types.ObjectId(userId);
+
     const result = await this.goalModel
-      .deleteOne({ _id: goalId, userId })
+      .deleteOne({ _id: goalId, userId: userObjectId })
       .exec();
     if (result.deletedCount === 0) {
       throw new NotFoundException('Goal not found');

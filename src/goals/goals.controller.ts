@@ -87,7 +87,7 @@ export class GoalsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(JwtAuthGuard)
   async remove(@Request() req, @Param('id') id: string) {
-    return await this.goalsService.remove(req.user.userId, id);
+    return await this.goalsService.remove(req.user.id, id);
   }
 
   @Put(':id/completeGoal')
