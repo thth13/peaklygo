@@ -14,6 +14,7 @@ import { CreateCommentDto, UpdateCommentDto } from './dto/comment.dto';
 import { Goal, GoalDocument } from '../goals/schemas/goal.schema';
 import { Profile, ProfileDocument } from '../profile/schemas/profile.schema';
 import { ActivityType } from 'src/goals/interfaces/goal.interface';
+import { ProfileService } from '../profile/profile.service';
 
 @Injectable()
 export class ProgressEntryService {
@@ -26,6 +27,7 @@ export class ProgressEntryService {
     private goalModel: Model<GoalDocument>,
     @InjectModel(Profile.name)
     private profileModel: Model<ProfileDocument>,
+    private readonly profileService: ProfileService,
   ) {}
 
   async create(
@@ -62,7 +64,11 @@ export class ProgressEntryService {
       day: dayOfGoal,
     });
 
-    return progressEntry.save();
+    const savedEntry = await progressEntry.save();
+
+    await this.profileService.incrementBlogPosts(new Types.ObjectId(userId));
+
+    return savedEntry;
   }
 
   async findAll(
@@ -126,8 +132,17 @@ export class ProgressEntryService {
   }
 
   async remove(userId: string, entryId: string): Promise<void> {
+    const entry = await this.progressEntryModel
+      .findById(entryId)
+      .populate<{ goalId: Goal }>('goalId')
+      .exec();
+
+    if (!entry || entry.goalId.userId.toString() !== userId) {
+      throw new NotFoundException('Progress entry not found or access denied');
+    }
+
     const result = await this.progressEntryModel
-      .deleteOne({ _id: entryId, userId: new Types.ObjectId(userId) })
+      .deleteOne({ _id: entryId })
       .exec();
 
     if (result.deletedCount === 0) {
@@ -137,6 +152,11 @@ export class ProgressEntryService {
     await this.commentModel
       .deleteMany({ progressEntryId: new Types.ObjectId(entryId) })
       .exec();
+
+    await this.profileService.incrementBlogPosts(
+      new Types.ObjectId(userId),
+      -1,
+    );
   }
 
   async toggleLike(userId: string, entryId: string): Promise<ProgressEntry> {

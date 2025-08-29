@@ -8,12 +8,14 @@ import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { Goal, GoalDocument } from './schemas/goal.schema';
 import { CreateGoalDto, UpdateGoalDto, CreateStepDto } from './dto/goal.dto';
 import { ActivityType } from './interfaces/goal.interface';
+import { ProfileService } from 'src/profile/profile.service';
 
 @Injectable()
 export class GoalsService {
   constructor(
     @InjectModel(Goal.name) private goalModel: Model<GoalDocument>,
     @InjectS3() private readonly s3: S3,
+    private readonly profileService: ProfileService,
   ) {}
 
   async create(
@@ -24,12 +26,21 @@ export class GoalsService {
       createGoalDto.image = await this.compressAndUploadImage(image);
     }
 
+    const userObjectId = new Types.ObjectId(createGoalDto.userId);
     const createdGoal = new this.goalModel({
       ...createGoalDto,
-      userId: new Types.ObjectId(createGoalDto.userId),
+      userId: userObjectId,
     });
 
-    return createdGoal.save();
+    const savedGoal = await createdGoal.save();
+
+    // Инкремент статистик
+    await Promise.all([
+      this.profileService.incrementGoalsCreatedThisMonth(userObjectId),
+      this.profileService.incrementActiveGoals(userObjectId),
+    ]);
+
+    return savedGoal;
   }
 
   async getUserGoals(userId: string): Promise<Goal[]> {
@@ -85,11 +96,24 @@ export class GoalsService {
   async remove(userId: string, goalId: string): Promise<void> {
     const userObjectId = new Types.ObjectId(userId);
 
+    const goalToDelete = await this.goalModel
+      .findOne({ _id: goalId, userId: userObjectId })
+      .exec();
+    if (!goalToDelete) {
+      throw new NotFoundException('Goal not found');
+    }
+
     const result = await this.goalModel
       .deleteOne({ _id: goalId, userId: userObjectId })
       .exec();
+
     if (result.deletedCount === 0) {
       throw new NotFoundException('Goal not found');
+    }
+
+    // Декремент статистик при удалении цели
+    if (!goalToDelete.isCompleted) {
+      await this.profileService.decrementActiveGoals(userObjectId);
     }
   }
 
@@ -101,6 +125,12 @@ export class GoalsService {
     if (!goal) {
       throw new NotFoundException('Goal not found');
     }
+
+    // Инкремент статистик
+    await Promise.all([
+      this.profileService.decrementActiveGoals(goal.userId),
+      this.profileService.incrementCompletedGoals(goal.userId),
+    ]);
 
     return goal;
   }
@@ -145,6 +175,13 @@ export class GoalsService {
     const updatedGoal = await this.goalModel
       .findByIdAndUpdate(goalId, { progress: newProgress }, { new: true })
       .exec();
+
+    // Инкремент/декремент статистик задач
+    if (isCompleted) {
+      await this.profileService.incrementClosedTasks(goal.userId);
+    } else {
+      await this.profileService.decrementClosedTasks(goal.userId);
+    }
 
     return updatedGoal;
   }

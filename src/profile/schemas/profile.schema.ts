@@ -25,6 +25,9 @@ export class Profile {
 
   @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }] })
   followers: Types.ObjectId[];
+
+  @Prop({ default: 0, min: 0 })
+  rating: number;
 }
 
 export const ProfileSchema = SchemaFactory.createForClass(Profile);

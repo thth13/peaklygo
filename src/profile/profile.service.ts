@@ -7,11 +7,23 @@ import sharp from 'sharp';
 import { InjectS3, S3 } from 'nestjs-s3';
 import { randomUUID } from 'crypto';
 import { DeleteObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import { Goal, GoalDocument } from 'src/goals/schemas/goal.schema';
+import {
+  ProgressEntry,
+  ProgressEntryDocument,
+} from 'src/progress-entry/schemas/progress-entry.schema';
+import { ProfileStats } from './interfaces/profile-stats.interface';
+import { UserStats, UserStatsDocument } from './schemas/user-stats.schema';
 
 @Injectable()
 export class ProfileService {
   constructor(
     @InjectModel('Profile') private readonly profileModel: Model<Profile>,
+    @InjectModel(Goal.name) private readonly goalModel: Model<GoalDocument>,
+    @InjectModel(ProgressEntry.name)
+    private readonly progressEntryModel: Model<ProgressEntryDocument>,
+    @InjectModel(UserStats.name)
+    private readonly userStatsModel: Model<UserStatsDocument>,
     @InjectS3() private readonly s3: S3,
   ) {}
 
@@ -35,6 +47,123 @@ export class ProfileService {
   }
 
   async addFollower() {}
+
+  async getStats(userId: string): Promise<ProfileStats> {
+    const userObjectId = new Types.ObjectId(userId);
+    await this.ensureUserStatsExists(userObjectId);
+    await this.checkAndResetMonthlyStats(userObjectId);
+
+    const userStats = await this.userStatsModel
+      .findOne({ userId: userObjectId })
+      .exec();
+    const profile = await this.findProfileByUser(userId);
+    const rating = profile?.rating ?? 0;
+
+    return {
+      goalsCreatedThisMonth: userStats?.goalsCreatedThisMonth ?? 0,
+      activeGoalsNow: userStats?.activeGoalsNow ?? 0,
+      completedGoals: userStats?.completedGoals ?? 0,
+      closedTasks: userStats?.closedTasks ?? 0,
+      blogPosts: userStats?.blogPosts ?? 0,
+      rating,
+    };
+  }
+
+  async incrementGoalsCreatedThisMonth(userId: Types.ObjectId): Promise<void> {
+    await this.ensureUserStatsExists(userId);
+    await this.checkAndResetMonthlyStats(userId);
+    await this.userStatsModel
+      .findOneAndUpdate({ userId }, { $inc: { goalsCreatedThisMonth: 1 } })
+      .exec();
+  }
+
+  async incrementActiveGoals(userId: Types.ObjectId): Promise<void> {
+    await this.ensureUserStatsExists(userId);
+    await this.userStatsModel
+      .findOneAndUpdate({ userId }, { $inc: { activeGoalsNow: 1 } })
+      .exec();
+  }
+
+  async decrementActiveGoals(userId: Types.ObjectId): Promise<void> {
+    await this.ensureUserStatsExists(userId);
+    await this.userStatsModel
+      .findOneAndUpdate({ userId }, { $inc: { activeGoalsNow: -1 } })
+      .exec();
+  }
+
+  async incrementCompletedGoals(userId: Types.ObjectId): Promise<void> {
+    await this.ensureUserStatsExists(userId);
+    await this.userStatsModel
+      .findOneAndUpdate({ userId }, { $inc: { completedGoals: 1 } })
+      .exec();
+  }
+
+  async incrementClosedTasks(userId: Types.ObjectId): Promise<void> {
+    await this.ensureUserStatsExists(userId);
+    await this.userStatsModel
+      .findOneAndUpdate({ userId }, { $inc: { closedTasks: 1 } })
+      .exec();
+  }
+
+  async decrementClosedTasks(userId: Types.ObjectId): Promise<void> {
+    await this.ensureUserStatsExists(userId);
+    await this.userStatsModel
+      .findOneAndUpdate({ userId }, { $inc: { closedTasks: -1 } })
+      .exec();
+  }
+
+  async incrementBlogPosts(
+    userId: Types.ObjectId,
+    amount: number = 1,
+  ): Promise<void> {
+    await this.ensureUserStatsExists(userId);
+    await this.userStatsModel
+      .findOneAndUpdate({ userId }, { $inc: { blogPosts: amount } })
+      .exec();
+  }
+
+  private async ensureUserStatsExists(userId: Types.ObjectId): Promise<void> {
+    const exists = await this.userStatsModel.findOne({ userId }).exec();
+    if (!exists) {
+      await this.userStatsModel.create({
+        userId,
+        goalsCreatedThisMonth: 0,
+        activeGoalsNow: 0,
+        completedGoals: 0,
+        closedTasks: 0,
+        blogPosts: 0,
+        lastMonthReset: new Date(),
+      });
+    }
+  }
+
+  private async checkAndResetMonthlyStats(
+    userId: Types.ObjectId,
+  ): Promise<void> {
+    const userStats = await this.userStatsModel.findOne({ userId }).exec();
+    if (!userStats) return;
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const lastResetMonth = userStats.lastMonthReset.getMonth();
+    const lastResetYear = userStats.lastMonthReset.getFullYear();
+
+    if (
+      currentYear > lastResetYear ||
+      (currentYear === lastResetYear && currentMonth > lastResetMonth)
+    ) {
+      await this.userStatsModel
+        .findOneAndUpdate(
+          { userId },
+          {
+            goalsCreatedThisMonth: 0,
+            lastMonthReset: new Date(currentYear, currentMonth, 1),
+          },
+        )
+        .exec();
+    }
+  }
 
   private async findProfileByUser(id: string): Promise<Profile> {
     try {

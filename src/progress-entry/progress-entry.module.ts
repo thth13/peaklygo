@@ -9,6 +9,7 @@ import {
 import { Comment, CommentSchema } from './schemas/comment.schema';
 import { Goal, GoalSchema } from '../goals/schemas/goal.schema';
 import { Profile, ProfileSchema } from '../profile/schemas/profile.schema';
+import { ProfileModule } from '../profile/profile.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { Profile, ProfileSchema } from '../profile/schemas/profile.schema';
       { name: Goal.name, schema: GoalSchema },
       { name: Profile.name, schema: ProfileSchema },
     ]),
+    ProfileModule,
   ],
   controllers: [ProgressEntryController],
   providers: [ProgressEntryService],

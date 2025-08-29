@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Post,
   Put,
   Request,
   UploadedFile,
@@ -53,5 +54,11 @@ export class ProfileController {
   @HttpCode(HttpStatus.OK)
   async getProfile(@Param() params) {
     return await this.profileService.getProfile(params.id);
+  }
+
+  @Get(':id/stats')
+  @HttpCode(HttpStatus.OK)
+  async getStats(@Param('id') id: string) {
+    return await this.profileService.getStats(id);
   }
 }

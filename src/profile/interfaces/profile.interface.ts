@@ -8,4 +8,5 @@ export interface Profile extends Document {
   user: Types.ObjectId;
   following: Types.ObjectId[];
   followers: Types.ObjectId[];
+  rating: number;
 }
