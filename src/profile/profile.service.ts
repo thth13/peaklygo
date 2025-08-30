@@ -36,10 +36,10 @@ export class ProfileService {
       editProfileDto.avatar = await this.compressAndUploadAvatar(avatar, id);
     }
 
-    return await this.profileModel.findOneAndUpdate(
-      { user: id },
-      editProfileDto,
-    );
+    return await this.profileModel
+      .findOneAndUpdate({ user: id }, editProfileDto, { new: true })
+      .populate('user', 'username')
+      .exec();
   }
 
   async getProfile(id: string): Promise<Profile> {
@@ -167,7 +167,10 @@ export class ProfileService {
 
   private async findProfileByUser(id: string): Promise<Profile> {
     try {
-      return await this.profileModel.findOne({ user: id }).exec();
+      return await this.profileModel
+        .findOne({ user: id })
+        .populate('user', 'username')
+        .exec();
     } catch (err) {
       throw new NotFoundException('Profile not found.');
     }

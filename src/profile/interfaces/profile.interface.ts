@@ -5,7 +5,7 @@ export interface Profile extends Document {
   avatar: string;
   description: string;
   views: number;
-  user: Types.ObjectId;
+  user: Types.ObjectId | { username: string };
   following: Types.ObjectId[];
   followers: Types.ObjectId[];
   rating: number;
