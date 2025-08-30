@@ -46,6 +46,7 @@ export class UserService {
   ): Promise<UserLoginInfo> {
     const user = new this.userModel(CreateUserDto);
     await this.isEmailUnique(user.email);
+    await this.isUsernameUnique(user.username);
     const profile = new this.profileModel({ user: user.id });
 
     await profile.save();
@@ -58,7 +59,7 @@ export class UserService {
     req: Request,
     loginUserDto: LoginUserDto,
   ): Promise<UserLoginInfo> {
-    const user = await this.findUserByEmail(loginUserDto.email);
+    const user = await this.findUserByIdentifier(loginUserDto.identifier);
     await this.checkPassword(loginUserDto.password, user);
     await this.passwordsAreMatch(user);
 
@@ -76,8 +77,23 @@ export class UserService {
     });
 
     if (!user) {
+      // Generate unique username from email
+      const baseUsername = googlePayload.email
+        .split('@')[0]
+        .replace(/[^a-zA-Z0-9_]/g, '_')
+        .toLowerCase();
+      let uniqueUsername = baseUsername;
+      let counter = 1;
+
+      // Ensure username is unique
+      while (await this.userModel.findOne({ username: uniqueUsername })) {
+        uniqueUsername = `${baseUsername}_${counter}`;
+        counter++;
+      }
+
       user = await this.userModel.create({
         email: googlePayload.email,
+        username: uniqueUsername,
         password: v4(),
       });
 
@@ -166,7 +182,14 @@ export class UserService {
   private async isEmailUnique(email: string) {
     const user = await this.userModel.findOne({ email });
     if (user) {
-      throw new BadRequestException({ email: 'Email most be unique' });
+      throw new BadRequestException({ email: 'Email must be unique' });
+    }
+  }
+
+  private async isUsernameUnique(username: string) {
+    const user = await this.userModel.findOne({ username });
+    if (user) {
+      throw new BadRequestException({ username: 'Username must be unique' });
     }
   }
 
@@ -177,6 +200,7 @@ export class UserService {
     const userLoginInfo = {
       id: user._id,
       email: user.email,
+      username: user.username,
       accessToken: await this.authService.createAccessToken(user._id),
       refreshToken: await this.authService.createRefreshToken(req, user._id),
     };
@@ -190,6 +214,27 @@ export class UserService {
       throw new UnauthorizedException({
         email: 'Wrong email or password',
         password: 'Wrong email or password',
+      });
+    }
+    return user;
+  }
+
+  private isEmailFormat(identifier: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(identifier);
+  }
+
+  private async findUserByIdentifier(identifier: string): Promise<User> {
+    const isEmail = this.isEmailFormat(identifier);
+    const searchQuery = isEmail
+      ? { email: identifier.toLowerCase() }
+      : { username: identifier.toLowerCase() };
+
+    const user = await this.userModel.findOne(searchQuery);
+    if (!user) {
+      throw new UnauthorizedException({
+        identifier: 'Wrong email/username or password',
+        password: 'Wrong email/username or password',
       });
     }
     return user;

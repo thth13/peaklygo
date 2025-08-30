@@ -17,6 +17,21 @@ export class User {
   })
   email: string;
 
+  @Prop({
+    required: true,
+    lowercase: true,
+    minlength: 3,
+    maxlength: 30,
+    unique: true,
+    validate: {
+      validator: function (v: string) {
+        return /^[a-zA-Z0-9_]+$/.test(v);
+      },
+      message: 'Username can only contain letters, numbers and underscores',
+    },
+  })
+  username: string;
+
   @Prop({ required: true, minlength: 4, maxlength: 1024 })
   password: string;
 
