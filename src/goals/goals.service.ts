@@ -58,7 +58,10 @@ export class GoalsService {
     const { page = 1, limit = 10 } = paginationDto;
     const skip = (page - 1) * limit;
 
-    const query = { userId: new Types.ObjectId(userId) };
+    const query = {
+      userId: new Types.ObjectId(userId),
+      $or: [{ isArchived: false }, { isArchived: { $exists: false } }],
+    };
 
     const [goals, total] = await Promise.all([
       this.goalModel
@@ -114,12 +117,6 @@ export class GoalsService {
         },
         {
           $set: { ...updateGoalDto, userId },
-          $push: {
-            activity: {
-              activityType: ActivityType.EditedGoal,
-              date: new Date(),
-            },
-          },
         },
         { new: true },
       )
@@ -156,7 +153,7 @@ export class GoalsService {
     }
 
     // Декремент статистик при удалении цели
-    if (!goalToDelete.isCompleted) {
+    if (!goalToDelete.isCompleted && !goalToDelete.isArchived) {
       await this.profileService.decrementActiveGoals(userObjectId);
     }
   }
@@ -175,6 +172,40 @@ export class GoalsService {
       this.profileService.decrementActiveGoals(goal.userId),
       this.profileService.incrementCompletedGoals(goal.userId),
     ]);
+
+    return goal;
+  }
+
+  async archiveGoal(goalId: string): Promise<Goal> {
+    const goal = await this.goalModel
+      .findOneAndUpdate({ _id: goalId }, { isArchived: true }, { new: true })
+      .exec();
+
+    if (!goal) {
+      throw new NotFoundException('Goal not found');
+    }
+
+    // Декремент активных целей если цель не была завершена
+    if (!goal.isCompleted) {
+      await this.profileService.decrementActiveGoals(goal.userId);
+    }
+
+    return goal;
+  }
+
+  async unarchiveGoal(goalId: string): Promise<Goal> {
+    const goal = await this.goalModel
+      .findOneAndUpdate({ _id: goalId }, { isArchived: false }, { new: true })
+      .exec();
+
+    if (!goal) {
+      throw new NotFoundException('Goal not found');
+    }
+
+    // Инкремент активных целей если цель не завершена
+    if (!goal.isCompleted) {
+      await this.profileService.incrementActiveGoals(goal.userId);
+    }
 
     return goal;
   }

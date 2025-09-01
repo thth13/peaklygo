@@ -43,6 +43,9 @@ export class Goal {
   @Prop({ default: false })
   isCompleted: boolean;
 
+  @Prop({ default: false })
+  isArchived: boolean;
+
   @Prop({ default: 100, min: 1, max: 500 })
   value: number;
 

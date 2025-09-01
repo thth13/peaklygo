@@ -107,6 +107,20 @@ export class GoalsController {
     return await this.goalsService.completeGoal(id);
   }
 
+  @Put(':id/archive')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async archiveGoal(@Param('id') id: string) {
+    return await this.goalsService.archiveGoal(id);
+  }
+
+  @Put(':id/unarchive')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async unarchiveGoal(@Param('id') id: string) {
+    return await this.goalsService.unarchiveGoal(id);
+  }
+
   @Put(':goalId/steps/:stepId/complete')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)

@@ -40,6 +40,7 @@ export interface Goal extends Document {
   consequence?: string;
   privacy: PrivaciyStatus;
   isCompleted: boolean;
+  isArchived: boolean;
   value: number;
   userId: Types.ObjectId;
   progress: number;
