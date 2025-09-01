@@ -278,4 +278,29 @@ export class GoalsService {
     goal.steps.splice(stepIndex, 1);
     return goal.save();
   }
+
+  async editStep(
+    goalId: string,
+    stepId: string,
+    updateStepDto: { text: string },
+  ): Promise<Goal> {
+    const updatedGoal = await this.goalModel
+      .findOneAndUpdate(
+        {
+          _id: goalId,
+          'steps.id': stepId,
+        },
+        {
+          $set: { 'steps.$.text': updateStepDto.text },
+        },
+        { new: true },
+      )
+      .exec();
+
+    if (!updatedGoal) {
+      throw new NotFoundException('Goal or step not found');
+    }
+
+    return updatedGoal;
+  }
 }

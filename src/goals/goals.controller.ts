@@ -20,6 +20,7 @@ import {
   UpdateGoalDto,
   CreateStepDto,
   GetGoalsPaginationDto,
+  UpdateStepDto,
 } from './dto/goal.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -140,5 +141,16 @@ export class GoalsController {
     @Param('stepId') stepId: string,
   ) {
     return await this.goalsService.deleteStep(goalId, stepId);
+  }
+
+  @Put(':goalId/steps/:stepId')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async editStep(
+    @Param('goalId') goalId: string,
+    @Param('stepId') stepId: string,
+    @Body() updateStepDto: UpdateStepDto,
+  ) {
+    return await this.goalsService.editStep(goalId, stepId, updateStepDto);
   }
 }

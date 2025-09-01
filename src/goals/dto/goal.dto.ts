@@ -143,6 +143,12 @@ export class CreateStepDto {
   text: string;
 }
 
+export class UpdateStepDto {
+  @IsString()
+  @IsNotEmpty()
+  text: string;
+}
+
 export class GetGoalsPaginationDto {
   @IsOptional()
   @IsNumber()
