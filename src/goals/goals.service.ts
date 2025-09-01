@@ -104,6 +104,8 @@ export class GoalsService {
       updateGoalDto.image = await this.compressAndUploadImage(image);
     }
 
+    const stepsUpdated = updateGoalDto.steps !== undefined;
+
     const updatedGoal = await this.goalModel
       .findOneAndUpdate(
         {
@@ -126,6 +128,12 @@ export class GoalsService {
     if (!updatedGoal) {
       throw new NotFoundException('Goal not found');
     }
+
+    if (stepsUpdated) {
+      await this.calculateAndUpdateProgress(goalId);
+      return this.goalModel.findById(goalId).exec();
+    }
+
     return updatedGoal;
   }
 
@@ -201,16 +209,7 @@ export class GoalsService {
       throw new NotFoundException('Goal or step not found');
     }
 
-    // Пересчитываем прогресс на основе выполненных шагов
-    const totalSteps = goal.steps.length;
-    const completedSteps = goal.steps.filter((step) => step.isCompleted).length;
-    const newProgress =
-      totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
-
-    // Обновляем прогресс в цели
-    const updatedGoal = await this.goalModel
-      .findByIdAndUpdate(goalId, { progress: newProgress }, { new: true })
-      .exec();
+    await this.calculateAndUpdateProgress(goalId);
 
     // Инкремент/декремент статистик задач
     if (isCompleted) {
@@ -219,28 +218,7 @@ export class GoalsService {
       await this.profileService.decrementClosedTasks(goal.userId);
     }
 
-    return updatedGoal;
-  }
-
-  private async compressAndUploadImage(image: Express.Multer.File) {
-    const uniqueFileName = `${randomUUID()}`;
-
-    const buffer = await sharp(image.buffer).webp({ quality: 50 }).toBuffer();
-
-    const params = {
-      Bucket: process.env.S3_BUCKET_NAME,
-      Key: uniqueFileName,
-      Body: buffer,
-      ContentType: image.mimetype,
-    };
-
-    try {
-      await this.s3.send(new PutObjectCommand(params));
-    } catch (err) {
-      console.log(err);
-    }
-
-    return params.Key;
+    return this.goalModel.findById(goalId).exec();
   }
 
   async createStep(
@@ -260,7 +238,11 @@ export class GoalsService {
     };
 
     goal.steps.push(newStep);
-    return goal.save();
+    await goal.save();
+
+    await this.calculateAndUpdateProgress(goalId);
+
+    return this.goalModel.findById(goalId).exec();
   }
 
   async deleteStep(goalId: string, stepId: string): Promise<Goal> {
@@ -276,7 +258,11 @@ export class GoalsService {
     }
 
     goal.steps.splice(stepIndex, 1);
-    return goal.save();
+    await goal.save();
+
+    await this.calculateAndUpdateProgress(goalId);
+
+    return this.goalModel.findById(goalId).exec();
   }
 
   async editStep(
@@ -302,5 +288,45 @@ export class GoalsService {
     }
 
     return updatedGoal;
+  }
+
+  private async calculateAndUpdateProgress(goalId: string): Promise<number> {
+    const goal = await this.goalModel.findById(goalId).exec();
+
+    if (!goal) {
+      throw new NotFoundException('Goal not found');
+    }
+
+    const totalSteps = goal.steps.length;
+    const completedSteps = goal.steps.filter((step) => step.isCompleted).length;
+    const newProgress =
+      totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+
+    await this.goalModel
+      .findByIdAndUpdate(goalId, { progress: newProgress })
+      .exec();
+
+    return newProgress;
+  }
+
+  private async compressAndUploadImage(image: Express.Multer.File) {
+    const uniqueFileName = `${randomUUID()}`;
+
+    const buffer = await sharp(image.buffer).webp({ quality: 50 }).toBuffer();
+
+    const params = {
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: uniqueFileName,
+      Body: buffer,
+      ContentType: image.mimetype,
+    };
+
+    try {
+      await this.s3.send(new PutObjectCommand(params));
+    } catch (err) {
+      console.log(err);
+    }
+
+    return params.Key;
   }
 }
