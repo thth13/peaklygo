@@ -6,8 +6,16 @@ import { InjectS3, S3 } from 'nestjs-s3';
 import { randomUUID } from 'crypto';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { Goal, GoalDocument } from './schemas/goal.schema';
-import { CreateGoalDto, UpdateGoalDto, CreateStepDto } from './dto/goal.dto';
-import { ActivityType } from './interfaces/goal.interface';
+import {
+  CreateGoalDto,
+  UpdateGoalDto,
+  CreateStepDto,
+  GetGoalsPaginationDto,
+} from './dto/goal.dto';
+import {
+  ActivityType,
+  PaginatedGoalsResponse,
+} from './interfaces/goal.interface';
 import { ProfileService } from 'src/profile/profile.service';
 
 @Injectable()
@@ -43,8 +51,36 @@ export class GoalsService {
     return savedGoal;
   }
 
-  async getUserGoals(userId: string): Promise<Goal[]> {
-    return this.goalModel.find({ userId: new Types.ObjectId(userId) }).exec();
+  async getUserGoals(
+    userId: string,
+    paginationDto: GetGoalsPaginationDto,
+  ): Promise<PaginatedGoalsResponse> {
+    const { page = 1, limit = 10 } = paginationDto;
+    const skip = (page - 1) * limit;
+
+    const query = { userId: new Types.ObjectId(userId) };
+
+    const [goals, total] = await Promise.all([
+      this.goalModel
+        .find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+      this.goalModel.countDocuments(query),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      goals: goals as any[],
+      total,
+      page,
+      limit,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    };
   }
 
   async findOne(goalId: string): Promise<Goal> {

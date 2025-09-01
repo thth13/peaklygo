@@ -11,6 +11,7 @@ import {
   Min,
   Max,
   ValidateNested,
+  IsPositive,
 } from 'class-validator';
 import { plainToInstance, Transform, Type } from 'class-transformer';
 import { PartialType } from '@nestjs/mapped-types';
@@ -140,4 +141,21 @@ export class CreateStepDto {
   @IsString()
   @IsNotEmpty()
   text: string;
+}
+
+export class GetGoalsPaginationDto {
+  @IsOptional()
+  @IsNumber()
+  @IsPositive()
+  @Transform(({ value }) => parseInt(value))
+  @Min(1)
+  page?: number = 1;
+
+  @IsOptional()
+  @IsNumber()
+  @IsPositive()
+  @Transform(({ value }) => parseInt(value))
+  @Min(1)
+  @Max(100)
+  limit?: number = 10;
 }

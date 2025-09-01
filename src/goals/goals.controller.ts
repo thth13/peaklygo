@@ -12,9 +12,15 @@ import {
   HttpStatus,
   UseInterceptors,
   UploadedFile,
+  Query,
 } from '@nestjs/common';
 import { GoalsService } from './goals.service';
-import { CreateGoalDto, UpdateGoalDto, CreateStepDto } from './dto/goal.dto';
+import {
+  CreateGoalDto,
+  UpdateGoalDto,
+  CreateStepDto,
+  GetGoalsPaginationDto,
+} from './dto/goal.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 
@@ -48,8 +54,11 @@ export class GoalsController {
 
   @Get('/userGoals/:userId')
   @HttpCode(HttpStatus.OK)
-  async getUserGoals(@Param('userId') userId: string) {
-    return await this.goalsService.getUserGoals(userId);
+  async getUserGoals(
+    @Param('userId') userId: string,
+    @Query() paginationDto: GetGoalsPaginationDto,
+  ) {
+    return await this.goalsService.getUserGoals(userId, paginationDto);
   }
 
   @Get(':id')

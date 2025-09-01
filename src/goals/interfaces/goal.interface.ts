@@ -46,3 +46,13 @@ export interface Goal extends Document {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface PaginatedGoalsResponse {
+  goals: any[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
