@@ -12,6 +12,19 @@ export class EditProfileDto {
   @MaxLength(255)
   readonly name: string;
 
+  @ApiProperty({
+    example: 'john_doe',
+    description: 'Username',
+    format: 'string',
+    minLength: 3,
+    maxLength: 30,
+  })
+  @IsOptional()
+  @IsString()
+  @MinLength(3)
+  @MaxLength(30)
+  readonly username?: string;
+
   @IsOptional()
   avatar?: string;
 

@@ -9,11 +9,13 @@ import {
   ProgressEntrySchema,
 } from 'src/progress-entry/schemas/progress-entry.schema';
 import { UserStats, UserStatsSchema } from './schemas/user-stats.schema';
+import { User, UserSchema } from 'src/user/schemas/user.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: Profile.name, schema: ProfileSchema },
+      { name: User.name, schema: UserSchema },
       { name: Goal.name, schema: GoalSchema },
       { name: ProgressEntry.name, schema: ProgressEntrySchema },
       { name: UserStats.name, schema: UserStatsSchema },

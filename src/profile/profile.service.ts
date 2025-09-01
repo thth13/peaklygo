@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Profile } from './schemas/profile.schema';
 import { Model, Types } from 'mongoose';
@@ -14,11 +18,13 @@ import {
 } from 'src/progress-entry/schemas/progress-entry.schema';
 import { ProfileStats } from './interfaces/profile-stats.interface';
 import { UserStats, UserStatsDocument } from './schemas/user-stats.schema';
+import { User, UserDocument } from 'src/user/schemas/user.schema';
 
 @Injectable()
 export class ProfileService {
   constructor(
     @InjectModel('Profile') private readonly profileModel: Model<Profile>,
+    @InjectModel('User') private readonly userModel: Model<UserDocument>,
     @InjectModel(Goal.name) private readonly goalModel: Model<GoalDocument>,
     @InjectModel(ProgressEntry.name)
     private readonly progressEntryModel: Model<ProgressEntryDocument>,
@@ -36,8 +42,16 @@ export class ProfileService {
       editProfileDto.avatar = await this.compressAndUploadAvatar(avatar, id);
     }
 
+    // Handle username update if provided
+    if (editProfileDto.username) {
+      await this.updateUsernameIfChanged(id, editProfileDto.username);
+    }
+
+    // Remove username from dto as it's not stored in Profile schema
+    const { username, ...profileData } = editProfileDto;
+
     return await this.profileModel
-      .findOneAndUpdate({ user: id }, editProfileDto, { new: true })
+      .findOneAndUpdate({ user: id }, profileData, { new: true })
       .populate('user', 'username')
       .exec();
   }
@@ -210,5 +224,35 @@ export class ProfileService {
     }
 
     return params.Key;
+  }
+
+  private async updateUsernameIfChanged(
+    userId: string,
+    newUsername: string,
+  ): Promise<void> {
+    const currentUser = await this.userModel.findById(userId);
+    if (!currentUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    // If username hasn't changed, do nothing
+    if (currentUser.username === newUsername.toLowerCase()) {
+      return;
+    }
+
+    // Check if new username is unique
+    const existingUser = await this.userModel.findOne({
+      username: newUsername.toLowerCase(),
+    });
+    if (existingUser) {
+      throw new BadRequestException({
+        username: 'Username must be unique',
+      });
+    }
+
+    // Update username
+    await this.userModel.findByIdAndUpdate(userId, {
+      username: newUsername.toLowerCase(),
+    });
   }
 }
