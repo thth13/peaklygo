@@ -7,7 +7,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Profile } from './schemas/profile.schema';
 import { Model, Types } from 'mongoose';
 import { EditProfileDto } from './dto/edit-profile-dto';
-import sharp from 'sharp';
+import * as sharp from 'sharp';
 import { InjectS3, S3 } from 'nestjs-s3';
 import { randomUUID } from 'crypto';
 import { DeleteObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
