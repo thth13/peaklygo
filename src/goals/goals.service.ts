@@ -86,6 +86,41 @@ export class GoalsService {
     };
   }
 
+  async getArchivedGoals(
+    userId: string,
+    paginationDto: GetGoalsPaginationDto,
+  ): Promise<PaginatedGoalsResponse> {
+    const { page = 1, limit = 10 } = paginationDto;
+    const skip = (page - 1) * limit;
+
+    const query = {
+      userId: new Types.ObjectId(userId),
+      isArchived: true,
+    };
+
+    const [goals, total] = await Promise.all([
+      this.goalModel
+        .find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+      this.goalModel.countDocuments(query),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      goals: goals as any[],
+      total,
+      page,
+      limit,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    };
+  }
+
   async findOne(goalId: string): Promise<Goal> {
     const goal = await this.goalModel.findOne({ _id: goalId }).exec();
 
