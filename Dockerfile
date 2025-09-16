@@ -24,7 +24,7 @@ RUN yarn build
 RUN yarn install --production
 
 # Expose port
-EXPOSE 80
+EXPOSE 8000
 
 # Start the application
 CMD ["node", "dist/main"]
