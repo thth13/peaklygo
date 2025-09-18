@@ -23,6 +23,7 @@ import {
   UpdateStepDto,
 } from './dto/goal.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CheckAccessGuard } from '../auth/guards/checkAccess.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('goals')
@@ -64,6 +65,7 @@ export class GoalsController {
 
   @Get('/userGoals/:userId/archived')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(CheckAccessGuard)
   async getArchivedGoals(
     @Param('userId') userId: string,
     @Query() paginationDto: GetGoalsPaginationDto,
