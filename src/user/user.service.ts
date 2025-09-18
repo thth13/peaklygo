@@ -122,7 +122,7 @@ export class UserService {
     const user = await this.userModel.findById(userId);
 
     if (!user) {
-      throw new BadRequestException('Bad request');
+      throw new BadRequestException({ refreshToken: 'USER_NOT_FOUND' });
     }
 
     return {
@@ -182,14 +182,14 @@ export class UserService {
   private async isEmailUnique(email: string) {
     const user = await this.userModel.findOne({ email });
     if (user) {
-      throw new BadRequestException({ email: 'Email must be unique' });
+      throw new BadRequestException({ email: 'EMAIL_NOT_UNIQUE' });
     }
   }
 
   private async isUsernameUnique(username: string) {
     const user = await this.userModel.findOne({ username });
     if (user) {
-      throw new BadRequestException({ username: 'Username must be unique' });
+      throw new BadRequestException({ username: 'USERNAME_NOT_UNIQUE' });
     }
   }
 
@@ -212,8 +212,8 @@ export class UserService {
     const user = await this.userModel.findOne({ email });
     if (!user) {
       throw new UnauthorizedException({
-        email: 'Wrong email or password',
-        password: 'Wrong email or password',
+        email: 'WRONG_CREDENTIALS',
+        password: 'WRONG_CREDENTIALS',
       });
     }
     return user;
@@ -233,8 +233,8 @@ export class UserService {
     const user = await this.userModel.findOne(searchQuery);
     if (!user) {
       throw new UnauthorizedException({
-        identifier: 'Wrong email/username or password',
-        password: 'Wrong email/username or password',
+        identifier: 'WRONG_CREDENTIALS',
+        password: 'WRONG_CREDENTIALS',
       });
     }
     return user;
@@ -244,7 +244,7 @@ export class UserService {
     const user = await this.userModel.findOne({ email });
 
     if (!user) {
-      throw new UnauthorizedException('Email not found.');
+      throw new UnauthorizedException({ email: 'EMAIL_NOT_FOUND' });
     }
 
     return user;
@@ -255,8 +255,8 @@ export class UserService {
 
     if (!match) {
       throw new UnauthorizedException({
-        email: 'Wrong email or password',
-        password: 'Wrong email or password',
+        identifier: 'WRONG_CREDENTIALS',
+        password: 'WRONG_CREDENTIALS',
       });
     }
 
@@ -332,7 +332,9 @@ export class UserService {
       expired: { $gt: new Date() },
     });
     if (!forgotPassword) {
-      throw new BadRequestException('Bad request.');
+      throw new BadRequestException({
+        verification: 'INVALID_VERIFICATION_TOKEN',
+      });
     }
 
     return forgotPassword;
@@ -361,7 +363,7 @@ export class UserService {
     });
 
     if (!forgotPassword) {
-      throw new BadRequestException('Bad request.');
+      throw new BadRequestException({ email: 'INVALID_RESET_REQUEST' });
     }
 
     return forgotPassword;
