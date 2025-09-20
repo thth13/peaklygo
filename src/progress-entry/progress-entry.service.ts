@@ -217,7 +217,7 @@ export class ProgressEntryService {
   ): Promise<Comment[]> {
     return this.commentModel
       .find({ progressEntryId: new Types.ObjectId(progressEntryId) })
-      .populate('profile', 'name avatar')
+      .populate('profile', 'name avatar user')
       .sort({ createdAt: 1 })
       .skip((page - 1) * limit)
       .limit(limit)
@@ -234,7 +234,7 @@ export class ProgressEntryService {
         { ...updateCommentDto, isEdited: true },
         { new: true },
       )
-      .populate('profile', 'username avatar')
+      .populate('profile', 'username avatar user')
       .populate('likes', 'username')
       .exec();
 
