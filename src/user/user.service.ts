@@ -173,6 +173,23 @@ export class UserService {
     return this.userModel.findOne({ botId });
   }
 
+  async markTutorialCompleted(userId: string) {
+    const updated = await this.userModel.findByIdAndUpdate(
+      userId,
+      { tutorialCompleted: true },
+      { new: true, projection: { password: 0 } },
+    );
+
+    if (!updated) {
+      throw new BadRequestException({ user: 'USER_NOT_FOUND' });
+    }
+
+    return {
+      id: updated._id,
+      tutorialCompleted: updated.tutorialCompleted,
+    };
+  }
+
   // ********************************************
   // ╔═╗╦═╗╦╦  ╦╔═╗╔╦╗╔═╗  ╔╦╗╔═╗╔╦╗╦ ╦╔═╗╔╦╗╔═╗
   // ╠═╝╠╦╝║╚╗╔╝╠═╣ ║ ║╣   ║║║║╣  ║ ╠═╣║ ║ ║║╚═╗

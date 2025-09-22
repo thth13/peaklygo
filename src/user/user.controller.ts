@@ -5,6 +5,7 @@ import {
   HttpStatus,
   Post,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { Request } from 'express';
 import {
@@ -22,6 +23,8 @@ import { CreateForgotPasswordDto } from './dto/create-forgot-password.dto';
 import { VerifyUuidDto } from './dto/verify-uuid.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { GoogleCodeResponse } from 'src/types';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { UserId } from 'src/auth/decorators/user-id.decorator';
 
 @Controller('user')
 export class UserController {
@@ -97,5 +100,15 @@ export class UserController {
   @ApiOkResponse({})
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return await this.userService.resetPassword(resetPasswordDto);
+  }
+
+  @Post('tutorial-completed')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ description: 'Mark user tutorial as completed' })
+  @ApiBearerAuth()
+  @ApiOkResponse({})
+  async tutorialCompleted(@UserId() userId: string) {
+    return this.userService.markTutorialCompleted(userId);
   }
 }

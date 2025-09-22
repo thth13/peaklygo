@@ -6,6 +6,11 @@ export interface User extends Document {
   password: string;
   loginAttempts?: number;
   blockExpires?: Date;
+  isPro: boolean;
+  proExpires?: Date;
+  tutorialCompleted: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface UserLoginInfo {

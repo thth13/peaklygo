@@ -1,11 +1,11 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import validator from 'validator';
-import mongoose, { HydratedDocument } from 'mongoose';
+import { HydratedDocument } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 
 export type UserDocument = HydratedDocument<User>;
 
-@Schema()
+@Schema({ timestamps: true })
 export class User {
   @Prop({
     required: true,
@@ -40,6 +40,15 @@ export class User {
 
   @Prop({ default: Date.now })
   blockExpires: Date;
+
+  @Prop({ default: false })
+  isPro: boolean;
+
+  @Prop()
+  proExpires?: Date;
+
+  @Prop({ default: false })
+  tutorialCompleted: boolean;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

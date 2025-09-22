@@ -183,7 +183,7 @@ export class ProfileService {
     try {
       return await this.profileModel
         .findOne({ user: id })
-        .populate('user', 'username')
+        .populate('user', 'username isPro tutorialCompleted')
         .exec();
     } catch (err) {
       throw new NotFoundException('Profile not found.');
