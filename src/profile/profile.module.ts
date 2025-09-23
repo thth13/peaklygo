@@ -10,6 +10,17 @@ import {
 } from 'src/progress-entry/schemas/progress-entry.schema';
 import { UserStats, UserStatsSchema } from './schemas/user-stats.schema';
 import { User, UserSchema } from 'src/user/schemas/user.schema';
+import { UserService } from 'src/user/user.service';
+import { AuthService } from 'src/auth/auth.service';
+import {
+  ForgotPassword,
+  ForgotPasswordSchema,
+} from 'src/user/schemas/forgot-password.schema';
+import {
+  RefreshToken,
+  RefreshTokenSchema,
+} from 'src/auth/schemas/refresh-token-schema';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -19,10 +30,16 @@ import { User, UserSchema } from 'src/user/schemas/user.schema';
       { name: Goal.name, schema: GoalSchema },
       { name: ProgressEntry.name, schema: ProgressEntrySchema },
       { name: UserStats.name, schema: UserStatsSchema },
+      { name: ForgotPassword.name, schema: ForgotPasswordSchema },
+      { name: RefreshToken.name, schema: RefreshTokenSchema },
     ]),
+    JwtModule.register({
+      secret: process.env.JWT_SECRET,
+      signOptions: { expiresIn: '5 days' },
+    }),
   ],
   controllers: [ProfileController],
-  providers: [ProfileService],
+  providers: [ProfileService, UserService, AuthService],
   exports: [ProfileService],
 })
 export class ProfileModule {}

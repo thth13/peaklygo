@@ -19,6 +19,7 @@ import {
 import { ProfileStats } from './interfaces/profile-stats.interface';
 import { UserStats, UserStatsDocument } from './schemas/user-stats.schema';
 import { User, UserDocument } from 'src/user/schemas/user.schema';
+import { UserService } from 'src/user/user.service';
 
 @Injectable()
 export class ProfileService {
@@ -31,6 +32,7 @@ export class ProfileService {
     @InjectModel(UserStats.name)
     private readonly userStatsModel: Model<UserStatsDocument>,
     @InjectS3() private readonly s3: S3,
+    private readonly userService: UserService,
   ) {}
 
   async editProfile(
@@ -181,9 +183,12 @@ export class ProfileService {
 
   private async findProfileByUser(id: string): Promise<Profile> {
     try {
+      // todo: check premium only if own profile
+      await this.userService.checkAndUpdatePremiumStatus(id);
+
       return await this.profileModel
         .findOne({ user: id })
-        .populate('user', 'username isPro tutorialCompleted')
+        .populate('user', 'username isPro tutorialCompleted proExpires')
         .exec();
     } catch (err) {
       throw new NotFoundException('Profile not found.');

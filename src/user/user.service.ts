@@ -24,6 +24,7 @@ import { randomUUID } from 'crypto';
 import { InjectS3, S3 } from 'nestjs-s3';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { GoogleCodeResponse } from 'src/types';
+import { PremiumType } from './dto/get-premium.dto';
 
 @Injectable()
 export class UserService {
@@ -188,6 +189,63 @@ export class UserService {
       id: updated._id,
       tutorialCompleted: updated.tutorialCompleted,
     };
+  }
+
+  async grantPremium(userId: string, type: PremiumType) {
+    const user = await this.userModel.findById(userId);
+
+    if (!user) {
+      throw new BadRequestException({ user: 'USER_NOT_FOUND' });
+    }
+
+    const now = new Date();
+
+    const expiresDate =
+      user.proExpires && user.proExpires > now
+        ? new Date(user.proExpires.getTime())
+        : new Date();
+
+    if (type === PremiumType.YEAR) {
+      expiresDate.setFullYear(expiresDate.getFullYear() + 1);
+    } else if (type === PremiumType.MONTHLY) {
+      expiresDate.setMonth(expiresDate.getMonth() + 1);
+    }
+
+    const updated = await this.userModel.findByIdAndUpdate(
+      userId,
+      {
+        isPro: true,
+        proExpires: expiresDate,
+      },
+      { new: true, projection: { password: 0 } },
+    );
+
+    const duration = type === PremiumType.YEAR ? '1 year' : '1 month';
+
+    return {
+      id: updated._id,
+      isPro: updated.isPro,
+      proExpires: updated.proExpires,
+      message: `Premium account granted for ${duration}`,
+    };
+  }
+
+  async checkAndUpdatePremiumStatus(userId: string): Promise<boolean> {
+    const user = await this.userModel.findById(userId);
+
+    if (!user) {
+      throw new BadRequestException({ user: 'USER_NOT_FOUND' });
+    }
+
+    if (user.isPro && user.proExpires && user.proExpires <= new Date()) {
+      await this.userModel.findByIdAndUpdate(userId, {
+        isPro: false,
+        proExpires: null,
+      });
+      return false;
+    }
+
+    return user.isPro;
   }
 
   // ********************************************

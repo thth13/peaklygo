@@ -22,6 +22,7 @@ import { RefreshAccessTokenDto } from './dto/refresh-access-token';
 import { CreateForgotPasswordDto } from './dto/create-forgot-password.dto';
 import { VerifyUuidDto } from './dto/verify-uuid.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { GetPremiumDto } from './dto/get-premium.dto';
 import { GoogleCodeResponse } from 'src/types';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { UserId } from 'src/auth/decorators/user-id.decorator';
@@ -110,5 +111,18 @@ export class UserController {
   @ApiOkResponse({})
   async tutorialCompleted(@UserId() userId: string) {
     return this.userService.markTutorialCompleted(userId);
+  }
+
+  @Post('get-premium')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ description: 'Grant premium account subscription' })
+  @ApiBearerAuth()
+  @ApiOkResponse({})
+  async getPremium(
+    @UserId() userId: string,
+    @Body() getPremiumDto: GetPremiumDto,
+  ) {
+    return this.userService.grantPremium(userId, getPremiumDto.type);
   }
 }
