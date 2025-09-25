@@ -38,7 +38,7 @@ export class GoalsController {
         fileSize: 20 * 1024 * 1024, // 20MB in bytes
       },
       fileFilter: (_, file, cb) => {
-        if (file.mimetype.match(/\/(jpg|jpeg|png|gif)$/)) {
+        if (file.mimetype.match(/\/(jpg|jpeg|png|gif|webp)$/)) {
           cb(null, true);
         } else {
           cb(new Error('Unsupported file type'), false);
@@ -73,6 +73,12 @@ export class GoalsController {
     return await this.goalsService.getArchivedGoals(userId, paginationDto);
   }
 
+  @Get('landing')
+  @HttpCode(HttpStatus.OK)
+  async getLandingGoals() {
+    return await this.goalsService.getLandingGoals();
+  }
+
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   async findOne(@Param('id') id: string) {
@@ -87,7 +93,7 @@ export class GoalsController {
         fileSize: 20 * 1024 * 1024, // 20MB in bytes
       },
       fileFilter: (_, file, cb) => {
-        if (file.mimetype.match(/\/(jpg|jpeg|png|gif)$/)) {
+        if (file.mimetype.match(/\/(jpg|jpeg|png|gif|webp)$/)) {
           cb(null, true);
         } else {
           cb(new Error('Unsupported file type'), false);

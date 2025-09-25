@@ -15,6 +15,7 @@ import {
 import {
   ActivityType,
   PaginatedGoalsResponse,
+  LandingGoal,
 } from './interfaces/goal.interface';
 import { ProfileService } from 'src/profile/profile.service';
 
@@ -354,6 +355,49 @@ export class GoalsService {
     }
 
     return updatedGoal;
+  }
+
+  async getLandingGoals(): Promise<LandingGoal[]> {
+    const goals = await this.goalModel
+      .find({ __v: 999 })
+      .populate({
+        path: 'userId',
+        select: 'username',
+      })
+      .sort({ createdAt: -1 })
+      .exec();
+
+    // Fetch profiles separately
+    const userIds = goals.map((goal) => (goal.userId as any)._id);
+    const profiles = await this.profileService.getProfilesByUserIds(userIds);
+
+    // Create profile map by userId
+    const profileMap = new Map();
+    profiles.forEach((profile) => {
+      profileMap.set(profile.user.toString(), profile);
+    });
+
+    // Attach profiles to goals
+    const result = goals.map((goal) => {
+      const goalObj = goal.toObject();
+      const profile = profileMap.get((goal.userId as any)._id.toString());
+
+      return {
+        ...goalObj,
+        userId: {
+          ...goalObj.userId,
+          profile: profile
+            ? {
+                _id: profile._id,
+                name: profile.name,
+                avatar: profile.avatar,
+              }
+            : undefined,
+        },
+      };
+    });
+
+    return result as unknown as LandingGoal[];
   }
 
   private async calculateAndUpdateProgress(goalId: string): Promise<number> {

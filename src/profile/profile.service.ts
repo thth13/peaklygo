@@ -138,6 +138,13 @@ export class ProfileService {
       .exec();
   }
 
+  async getProfilesByUserIds(userIds: Types.ObjectId[]): Promise<Profile[]> {
+    return await this.profileModel
+      .find({ user: { $in: userIds } })
+      .select('name avatar user')
+      .exec();
+  }
+
   private async ensureUserStatsExists(userId: Types.ObjectId): Promise<void> {
     const exists = await this.userStatsModel.findOne({ userId }).exec();
     if (!exists) {
