@@ -146,18 +146,21 @@ export class ProfileService {
   }
 
   private async ensureUserStatsExists(userId: Types.ObjectId): Promise<void> {
-    const exists = await this.userStatsModel.findOne({ userId }).exec();
-    if (!exists) {
-      await this.userStatsModel.create({
-        userId,
-        goalsCreatedThisMonth: 0,
-        activeGoalsNow: 0,
-        completedGoals: 0,
-        closedTasks: 0,
-        blogPosts: 0,
-        lastMonthReset: new Date(),
-      });
-    }
+    await this.userStatsModel
+      .findOneAndUpdate(
+        { userId },
+        {
+          userId,
+          goalsCreatedThisMonth: 0,
+          activeGoalsNow: 0,
+          completedGoals: 0,
+          closedTasks: 0,
+          blogPosts: 0,
+          lastMonthReset: new Date(),
+        },
+        { upsert: true, new: true },
+      )
+      .exec();
   }
 
   private async checkAndResetMonthlyStats(
