@@ -6,6 +6,8 @@ import {
   MaxLength,
   MinLength,
   Matches,
+  IsBoolean,
+  IsOptional,
 } from 'class-validator';
 
 export class CreateUserDto {
@@ -52,4 +54,13 @@ export class CreateUserDto {
   @MinLength(4)
   @MaxLength(1024)
   readonly password: string;
+
+  @ApiProperty({
+    example: false,
+    description: 'The tutorial completed of the User',
+    format: 'boolean',
+  })
+  @IsBoolean()
+  @IsOptional()
+  tutorialCompleted: boolean;
 }
