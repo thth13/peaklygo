@@ -21,6 +21,14 @@ import { UserStats, UserStatsDocument } from './schemas/user-stats.schema';
 import { User, UserDocument } from 'src/user/schemas/user.schema';
 import { UserService } from 'src/user/user.service';
 
+interface GoalAggregateResult {
+  goalsCreatedThisMonth: number;
+  activeGoalsNow: number;
+  completedGoals: number;
+  closedTasks: number;
+  goalIds: Types.ObjectId[];
+}
+
 @Injectable()
 export class ProfileService {
   constructor(
@@ -145,20 +153,122 @@ export class ProfileService {
       .exec();
   }
 
+  /**
+   * Recalculate statistics for every user and persist updated values.
+   */
+  async recalculateAllUsersStats(): Promise<void> {
+    const users: UserDocument[] = await this.userModel
+      .find()
+      .select('_id')
+      .exec();
+
+    if (users.length === 0) {
+      return;
+    }
+
+    const now: Date = new Date();
+    const monthStart: Date = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd: Date = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    for (const user of users) {
+      const userId: Types.ObjectId = user._id as Types.ObjectId;
+      const aggregateResult: GoalAggregateResult[] = await this.goalModel
+        .aggregate<GoalAggregateResult>([
+          { $match: { userId, isArchived: { $ne: true } } },
+          {
+            $group: {
+              _id: null,
+              goalsCreatedThisMonth: {
+                $sum: {
+                  $cond: [
+                    {
+                      $and: [
+                        { $gte: ['$createdAt', monthStart] },
+                        { $lt: ['$createdAt', monthEnd] },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              },
+              activeGoalsNow: {
+                $sum: {
+                  $cond: [
+                    {
+                      $and: [
+                        { $eq: ['$isCompleted', false] },
+                        { $ne: ['$isArchived', true] },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              },
+              completedGoals: {
+                $sum: {
+                  $cond: [{ $eq: ['$isCompleted', true] }, 1, 0],
+                },
+              },
+              closedTasks: {
+                $sum: {
+                  $size: {
+                    $filter: {
+                      input: { $ifNull: ['$steps', []] },
+                      as: 'step',
+                      cond: { $eq: ['$$step.isCompleted', true] },
+                    },
+                  },
+                },
+              },
+              goalIds: { $push: '$_id' },
+            },
+          },
+        ])
+        .exec();
+      const goalsStats: GoalAggregateResult | undefined = aggregateResult[0];
+      const goalIds: Types.ObjectId[] = goalsStats?.goalIds ?? [];
+      const blogPosts: number =
+        goalIds.length === 0
+          ? 0
+          : await this.progressEntryModel
+              .countDocuments({ goalId: { $in: goalIds } })
+              .exec();
+      await this.ensureUserStatsExists(userId);
+      await this.userStatsModel
+        .findOneAndUpdate(
+          { userId },
+          {
+            $set: {
+              goalsCreatedThisMonth: goalsStats?.goalsCreatedThisMonth ?? 0,
+              activeGoalsNow: goalsStats?.activeGoalsNow ?? 0,
+              completedGoals: goalsStats?.completedGoals ?? 0,
+              closedTasks: goalsStats?.closedTasks ?? 0,
+              blogPosts,
+              lastMonthReset: monthStart,
+            },
+          },
+        )
+        .exec();
+    }
+  }
+
   private async ensureUserStatsExists(userId: Types.ObjectId): Promise<void> {
     await this.userStatsModel
-      .findOneAndUpdate(
+      .updateOne(
         { userId },
         {
-          userId,
-          goalsCreatedThisMonth: 0,
-          activeGoalsNow: 0,
-          completedGoals: 0,
-          closedTasks: 0,
-          blogPosts: 0,
-          lastMonthReset: new Date(),
+          $setOnInsert: {
+            userId,
+            goalsCreatedThisMonth: 0,
+            activeGoalsNow: 0,
+            completedGoals: 0,
+            closedTasks: 0,
+            blogPosts: 0,
+            lastMonthReset: new Date(),
+          },
         },
-        { upsert: true, new: true },
+        { upsert: true },
       )
       .exec();
   }
