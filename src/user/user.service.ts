@@ -25,6 +25,7 @@ import { InjectS3, S3 } from 'nestjs-s3';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { GoogleCodeResponse } from 'src/types';
 import { PremiumType } from './dto/get-premium.dto';
+import { UserErrorCode } from './user-error-code.enum';
 
 @Injectable()
 export class UserService {
@@ -123,7 +124,9 @@ export class UserService {
     const user = await this.userModel.findById(userId);
 
     if (!user) {
-      throw new BadRequestException({ refreshToken: 'USER_NOT_FOUND' });
+      throw new BadRequestException({
+        refreshToken: UserErrorCode.UserNotFound,
+      });
     }
 
     return {
@@ -182,7 +185,9 @@ export class UserService {
     );
 
     if (!updated) {
-      throw new BadRequestException({ user: 'USER_NOT_FOUND' });
+      throw new BadRequestException({
+        user: UserErrorCode.UserNotFound,
+      });
     }
 
     return {
@@ -195,7 +200,7 @@ export class UserService {
     const user = await this.userModel.findById(userId);
 
     if (!user) {
-      throw new BadRequestException({ user: 'USER_NOT_FOUND' });
+      throw new BadRequestException({ user: UserErrorCode.UserNotFound });
     }
 
     const now = new Date();
@@ -234,7 +239,7 @@ export class UserService {
     const user = await this.userModel.findById(userId);
 
     if (!user) {
-      throw new BadRequestException({ user: 'USER_NOT_FOUND' });
+      throw new BadRequestException({ user: UserErrorCode.UserNotFound });
     }
 
     if (user.isPro && user.proExpires && user.proExpires <= new Date()) {
@@ -257,14 +262,16 @@ export class UserService {
   private async isEmailUnique(email: string) {
     const user = await this.userModel.findOne({ email });
     if (user) {
-      throw new BadRequestException({ email: 'EMAIL_NOT_UNIQUE' });
+      throw new BadRequestException({ email: UserErrorCode.EmailNotUnique });
     }
   }
 
   private async isUsernameUnique(username: string) {
     const user = await this.userModel.findOne({ username });
     if (user) {
-      throw new BadRequestException({ username: 'USERNAME_NOT_UNIQUE' });
+      throw new BadRequestException({
+        username: UserErrorCode.UsernameNotUnique,
+      });
     }
   }
 
@@ -287,8 +294,8 @@ export class UserService {
     const user = await this.userModel.findOne({ email });
     if (!user) {
       throw new UnauthorizedException({
-        email: 'WRONG_CREDENTIALS',
-        password: 'WRONG_CREDENTIALS',
+        email: UserErrorCode.WrongCredentials,
+        password: UserErrorCode.WrongCredentials,
       });
     }
     return user;
@@ -308,8 +315,8 @@ export class UserService {
     const user = await this.userModel.findOne(searchQuery);
     if (!user) {
       throw new UnauthorizedException({
-        identifier: 'WRONG_CREDENTIALS',
-        password: 'WRONG_CREDENTIALS',
+        identifier: UserErrorCode.WrongCredentials,
+        password: UserErrorCode.WrongCredentials,
       });
     }
     return user;
@@ -319,7 +326,9 @@ export class UserService {
     const user = await this.userModel.findOne({ email });
 
     if (!user) {
-      throw new UnauthorizedException({ email: 'EMAIL_NOT_FOUND' });
+      throw new UnauthorizedException({
+        email: UserErrorCode.EmailNotFound,
+      });
     }
 
     return user;
@@ -330,8 +339,8 @@ export class UserService {
 
     if (!match) {
       throw new UnauthorizedException({
-        identifier: 'WRONG_CREDENTIALS',
-        password: 'WRONG_CREDENTIALS',
+        identifier: UserErrorCode.WrongCredentials,
+        password: UserErrorCode.WrongCredentials,
       });
     }
 
@@ -408,7 +417,7 @@ export class UserService {
     });
     if (!forgotPassword) {
       throw new BadRequestException({
-        verification: 'INVALID_VERIFICATION_TOKEN',
+        verification: UserErrorCode.InvalidVerificationToken,
       });
     }
 
@@ -438,7 +447,9 @@ export class UserService {
     });
 
     if (!forgotPassword) {
-      throw new BadRequestException({ email: 'INVALID_RESET_REQUEST' });
+      throw new BadRequestException({
+        email: UserErrorCode.InvalidResetRequest,
+      });
     }
 
     return forgotPassword;
