@@ -195,20 +195,23 @@ export class GoalsService {
   }
 
   async completeGoal(goalId: string): Promise<Goal> {
+    const completionDate: Date = new Date();
     const goal = await this.goalModel
-      .findOneAndUpdate({ _id: goalId }, { isCompleted: true }, { new: true })
+      .findOneAndUpdate(
+        { _id: goalId },
+        { isCompleted: true, endDate: completionDate },
+        { new: true },
+      )
       .exec();
-
     if (!goal) {
       throw new NotFoundException('Goal not found');
     }
-
-    // Инкремент статистик
+    const ratingReward: number = goal.value ?? 0;
     await Promise.all([
       this.profileService.decrementActiveGoals(goal.userId),
       this.profileService.incrementCompletedGoals(goal.userId),
+      this.profileService.incrementRating(goal.userId, ratingReward),
     ]);
-
     return goal;
   }
 
@@ -278,11 +281,13 @@ export class GoalsService {
 
     await this.calculateAndUpdateProgress(goalId);
 
-    // Инкремент/декремент статистик задач
+    const ratingChange = Math.floor(goal.value / 10);
     if (isCompleted) {
       await this.profileService.incrementClosedTasks(goal.userId);
+      await this.profileService.incrementRating(goal.userId, ratingChange);
     } else {
       await this.profileService.decrementClosedTasks(goal.userId);
+      await this.profileService.decrementRating(goal.userId, ratingChange);
     }
 
     return this.goalModel.findById(goalId).exec();

@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { ProfileService } from './profile.service';
 import { ProfileController } from './profile.controller';
 import { Profile, ProfileSchema } from './schemas/profile.schema';
 import { Goal, GoalSchema } from 'src/goals/schemas/goal.schema';
@@ -21,6 +20,7 @@ import {
   RefreshTokenSchema,
 } from 'src/auth/schemas/refresh-token-schema';
 import { JwtModule } from '@nestjs/jwt';
+import { ProfileService } from './profile.service';
 
 @Module({
   imports: [

@@ -20,12 +20,14 @@ import { ProfileStats } from './interfaces/profile-stats.interface';
 import { UserStats, UserStatsDocument } from './schemas/user-stats.schema';
 import { User, UserDocument } from 'src/user/schemas/user.schema';
 import { UserService } from 'src/user/user.service';
+import { STEP_RATING_DIVIDER } from 'src/constants/rating.constants';
 
 interface GoalAggregateResult {
   goalsCreatedThisMonth: number;
   activeGoalsNow: number;
   completedGoals: number;
   closedTasks: number;
+  ratingFromSteps: number;
   goalIds: Types.ObjectId[];
 }
 
@@ -48,6 +50,8 @@ export class ProfileService {
     editProfileDto: EditProfileDto,
     avatar?: Express.Multer.File,
   ) {
+    // await this.recalculateAllUsersStats();
+    // return;
     if (avatar) {
       editProfileDto.avatar = await this.compressAndUploadAvatar(avatar, id);
     }
@@ -146,6 +150,20 @@ export class ProfileService {
       .exec();
   }
 
+  async incrementRating(userId: Types.ObjectId, amount: number): Promise<void> {
+    await this.profileModel
+      .findOneAndUpdate({ user: userId }, { $inc: { rating: amount } })
+      .exec();
+  }
+
+  async decrementRating(userId: Types.ObjectId, amount: number): Promise<void> {
+    const profile = await this.profileModel.findOne({ user: userId }).exec();
+    const newRating = Math.max(0, (profile?.rating || 0) - amount);
+    await this.profileModel
+      .findOneAndUpdate({ user: userId }, { $set: { rating: newRating } })
+      .exec();
+  }
+
   async getProfilesByUserIds(userIds: Types.ObjectId[]): Promise<Profile[]> {
     return await this.profileModel
       .find({ user: { $in: userIds } })
@@ -171,6 +189,15 @@ export class ProfileService {
     const monthEnd: Date = new Date(now.getFullYear(), now.getMonth() + 1, 1);
     for (const user of users) {
       const userId: Types.ObjectId = user._id as Types.ObjectId;
+      const completedStepsExpression: Record<string, unknown> = {
+        $size: {
+          $filter: {
+            input: { $ifNull: ['$steps', []] },
+            as: 'step',
+            cond: { $eq: ['$$step.isCompleted', true] },
+          },
+        },
+      };
       const aggregateResult: GoalAggregateResult[] = await this.goalModel
         .aggregate<GoalAggregateResult>([
           { $match: { userId, isArchived: { $ne: true } } },
@@ -212,13 +239,21 @@ export class ProfileService {
               },
               closedTasks: {
                 $sum: {
-                  $size: {
-                    $filter: {
-                      input: { $ifNull: ['$steps', []] },
-                      as: 'step',
-                      cond: { $eq: ['$$step.isCompleted', true] },
+                  ...completedStepsExpression,
+                },
+              },
+              ratingFromSteps: {
+                $sum: {
+                  $multiply: [
+                    {
+                      ...completedStepsExpression,
                     },
-                  },
+                    {
+                      $floor: {
+                        $divide: ['$value', STEP_RATING_DIVIDER],
+                      },
+                    },
+                  ],
                 },
               },
               goalIds: { $push: '$_id' },
@@ -228,6 +263,7 @@ export class ProfileService {
         .exec();
       const goalsStats: GoalAggregateResult | undefined = aggregateResult[0];
       const goalIds: Types.ObjectId[] = goalsStats?.goalIds ?? [];
+      const ratingFromSteps: number = goalsStats?.ratingFromSteps ?? 0;
       const blogPosts: number =
         goalIds.length === 0
           ? 0
@@ -235,6 +271,12 @@ export class ProfileService {
               .countDocuments({ goalId: { $in: goalIds } })
               .exec();
       await this.ensureUserStatsExists(userId);
+      await this.profileModel
+        .findOneAndUpdate(
+          { user: userId },
+          { $set: { rating: Math.max(0, ratingFromSteps) } },
+        )
+        .exec();
       await this.userStatsModel
         .findOneAndUpdate(
           { userId },
