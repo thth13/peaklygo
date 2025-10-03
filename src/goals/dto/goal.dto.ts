@@ -121,10 +121,6 @@ export class CreateGoalDto {
     autoPublishAchievements: false,
   };
 
-  @IsBoolean()
-  @IsOptional()
-  isCompleted?: boolean = false;
-
   @IsString()
   value: string;
 

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import * as sharp from 'sharp';
@@ -195,24 +199,34 @@ export class GoalsService {
   }
 
   async completeGoal(goalId: string): Promise<Goal> {
-    const completionDate: Date = new Date();
-    const goal = await this.goalModel
-      .findOneAndUpdate(
-        { _id: goalId },
-        { isCompleted: true, endDate: completionDate },
-        { new: true },
-      )
-      .exec();
+    const goal = await this.goalModel.findById(goalId).exec();
+
     if (!goal) {
       throw new NotFoundException('Goal not found');
     }
-    const ratingReward: number = goal.value ?? 0;
+
+    if (goal.isCompleted) {
+      throw new BadRequestException('Goal already completed');
+    }
+
+    // const completionDate: Date = new Date();
+
+    const updatedGoal = await this.goalModel
+      .findOneAndUpdate({ _id: goalId }, { isCompleted: true }, { new: true })
+      .exec();
+
+    if (!updatedGoal) {
+      throw new NotFoundException('Goal not found');
+    }
+
+    const ratingReward: number = updatedGoal.value ?? 0;
     await Promise.all([
-      this.profileService.decrementActiveGoals(goal.userId),
-      this.profileService.incrementCompletedGoals(goal.userId),
-      this.profileService.incrementRating(goal.userId, ratingReward),
+      this.profileService.decrementActiveGoals(updatedGoal.userId),
+      this.profileService.incrementCompletedGoals(updatedGoal.userId),
+      this.profileService.incrementRating(updatedGoal.userId, ratingReward),
     ]);
-    return goal;
+
+    return updatedGoal;
   }
 
   async archiveGoal(goalId: string): Promise<Goal> {
@@ -282,6 +296,7 @@ export class GoalsService {
     await this.calculateAndUpdateProgress(goalId);
 
     const ratingChange = Math.floor(goal.value / 10);
+
     if (isCompleted) {
       await this.profileService.incrementClosedTasks(goal.userId);
       await this.profileService.incrementRating(goal.userId, ratingChange);
