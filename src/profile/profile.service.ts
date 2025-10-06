@@ -28,6 +28,7 @@ interface GoalAggregateResult {
   completedGoals: number;
   closedTasks: number;
   ratingFromSteps: number;
+  ratingFromGoals: number;
   goalIds: Types.ObjectId[];
 }
 
@@ -200,7 +201,7 @@ export class ProfileService {
       };
       const aggregateResult: GoalAggregateResult[] = await this.goalModel
         .aggregate<GoalAggregateResult>([
-          { $match: { userId, isArchived: { $ne: true } } },
+          { $match: { userId } },
           {
             $group: {
               _id: null,
@@ -256,6 +257,11 @@ export class ProfileService {
                   ],
                 },
               },
+              ratingFromGoals: {
+                $sum: {
+                  $cond: [{ $eq: ['$isCompleted', true] }, '$value', 0],
+                },
+              },
               goalIds: { $push: '$_id' },
             },
           },
@@ -264,6 +270,7 @@ export class ProfileService {
       const goalsStats: GoalAggregateResult | undefined = aggregateResult[0];
       const goalIds: Types.ObjectId[] = goalsStats?.goalIds ?? [];
       const ratingFromSteps: number = goalsStats?.ratingFromSteps ?? 0;
+      const ratingFromGoals: number = goalsStats?.ratingFromGoals ?? 0;
       const blogPosts: number =
         goalIds.length === 0
           ? 0
@@ -274,7 +281,7 @@ export class ProfileService {
       await this.profileModel
         .findOneAndUpdate(
           { user: userId },
-          { $set: { rating: Math.max(0, ratingFromSteps) } },
+          { $set: { rating: Math.max(0, ratingFromSteps + ratingFromGoals) } },
         )
         .exec();
       await this.userStatsModel

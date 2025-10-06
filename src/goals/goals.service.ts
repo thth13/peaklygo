@@ -15,6 +15,7 @@ import {
   UpdateGoalDto,
   CreateStepDto,
   GetGoalsPaginationDto,
+  GoalFilterType,
 } from './dto/goal.dto';
 import {
   ActivityType,
@@ -60,13 +61,30 @@ export class GoalsService {
     userId: string,
     paginationDto: GetGoalsPaginationDto,
   ): Promise<PaginatedGoalsResponse> {
-    const { page = 1, limit = 10 } = paginationDto;
+    const {
+      page = 1,
+      limit = 10,
+      filter = GoalFilterType.ACTIVE,
+    } = paginationDto;
     const skip = (page - 1) * limit;
 
-    const query = {
+    let query: any = {
       userId: new Types.ObjectId(userId),
-      $or: [{ isArchived: false }, { isArchived: { $exists: false } }],
     };
+
+    switch (filter) {
+      case GoalFilterType.COMPLETED:
+        query.isCompleted = true;
+        break;
+      case GoalFilterType.ARCHIVED:
+        query.isArchived = true;
+        break;
+      case GoalFilterType.ACTIVE:
+      default:
+        query.isCompleted = { $ne: true };
+        query.$or = [{ isArchived: false }, { isArchived: { $exists: false } }];
+        break;
+    }
 
     const [goals, total] = await Promise.all([
       this.goalModel

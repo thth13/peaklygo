@@ -145,6 +145,12 @@ export class UpdateStepDto {
   text: string;
 }
 
+export enum GoalFilterType {
+  ACTIVE = 'active',
+  COMPLETED = 'completed',
+  ARCHIVED = 'archived',
+}
+
 export class GetGoalsPaginationDto {
   @IsOptional()
   @IsNumber()
@@ -160,4 +166,8 @@ export class GetGoalsPaginationDto {
   @Min(1)
   @Max(100)
   limit?: number = 10;
+
+  @IsOptional()
+  @IsEnum(GoalFilterType)
+  filter?: GoalFilterType = GoalFilterType.ACTIVE;
 }

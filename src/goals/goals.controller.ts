@@ -63,16 +63,6 @@ export class GoalsController {
     return await this.goalsService.getUserGoals(userId, paginationDto);
   }
 
-  @Get('/userGoals/:userId/archived')
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(CheckAccessGuard)
-  async getArchivedGoals(
-    @Param('userId') userId: string,
-    @Query() paginationDto: GetGoalsPaginationDto,
-  ) {
-    return await this.goalsService.getArchivedGoals(userId, paginationDto);
-  }
-
   @Get('landing')
   @HttpCode(HttpStatus.OK)
   async getLandingGoals() {
