@@ -1,6 +1,11 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { ActivityType } from '../interfaces/goal.interface';
+import {
+  ActivityType,
+  GoalType,
+  DayOfWeek,
+  PrivaciyStatus,
+} from '../interfaces/goal.interface';
 
 export type GoalDocument = Goal & Document;
 
@@ -15,11 +20,30 @@ export class Goal {
   @Prop()
   description: string;
 
+  @Prop({
+    type: String,
+    enum: Object.values(GoalType),
+    default: GoalType.Regular,
+  })
+  goalType: GoalType;
+
   @Prop({ required: true })
   startDate: Date;
 
   @Prop()
   endDate?: Date;
+
+  @Prop()
+  completedDate?: Date;
+
+  @Prop()
+  habitDuration?: number;
+
+  @Prop({
+    type: [String],
+    enum: Object.values(DayOfWeek),
+  })
+  habitDaysOfWeek?: DayOfWeek[];
 
   @Prop()
   image: string;
@@ -35,10 +59,10 @@ export class Goal {
 
   @Prop({
     type: String,
-    enum: ['private', 'friends', 'public'],
-    default: 'private',
+    enum: Object.values(PrivaciyStatus),
+    default: PrivaciyStatus.Private,
   })
-  privacy: string;
+  privacy: PrivaciyStatus;
 
   @Prop({ default: false })
   isCompleted: boolean;

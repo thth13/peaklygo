@@ -227,10 +227,17 @@ export class GoalsService {
       throw new BadRequestException('Goal already completed');
     }
 
-    // const completionDate: Date = new Date();
+    const completionDate: Date = new Date();
 
     const updatedGoal = await this.goalModel
-      .findOneAndUpdate({ _id: goalId }, { isCompleted: true }, { new: true })
+      .findOneAndUpdate(
+        { _id: goalId },
+        {
+          isCompleted: true,
+          completedDate: completionDate,
+        },
+        { new: true },
+      )
       .exec();
 
     if (!updatedGoal) {

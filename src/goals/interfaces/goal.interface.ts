@@ -1,9 +1,24 @@
 import { Document, Types } from 'mongoose';
 
-enum PrivaciyStatus {
+export enum PrivaciyStatus {
   Private = 'private',
   Friends = 'friends',
   Public = 'public',
+}
+
+export enum GoalType {
+  Regular = 'regular',
+  Habit = 'habit',
+}
+
+export enum DayOfWeek {
+  Monday = 'monday',
+  Tuesday = 'tuesday',
+  Wednesday = 'wednesday',
+  Thursday = 'thursday',
+  Friday = 'friday',
+  Saturday = 'saturday',
+  Sunday = 'sunday',
 }
 
 export interface Step {
@@ -30,9 +45,13 @@ export interface Goal extends Document {
   goalName: string;
   category: string;
   description?: string;
+  goalType: GoalType;
   startDate: Date;
   endDate?: Date;
+  completedDate?: Date;
   noDeadline?: boolean;
+  habitDuration?: number;
+  habitDaysOfWeek?: DayOfWeek[];
   image?: string;
   steps: Step[];
   activity: Activity[];
@@ -63,9 +82,13 @@ export interface LandingGoal {
   goalName: string;
   category: string;
   description?: string;
+  goalType: GoalType;
   startDate: Date;
   endDate?: Date;
+  completedDate?: Date;
   noDeadline?: boolean;
+  habitDuration?: number;
+  habitDaysOfWeek?: DayOfWeek[];
   image?: string;
   steps: Step[];
   activity: Activity[];

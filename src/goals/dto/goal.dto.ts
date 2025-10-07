@@ -15,6 +15,7 @@ import {
 } from 'class-validator';
 import { plainToInstance, Transform, Type } from 'class-transformer';
 import { PartialType } from '@nestjs/mapped-types';
+import { GoalType, DayOfWeek } from '../interfaces/goal.interface';
 
 class StepDto {
   @IsString()
@@ -41,6 +42,10 @@ export class CreateGoalDto {
   @IsOptional()
   description?: string;
 
+  @IsEnum(GoalType)
+  @IsOptional()
+  goalType?: GoalType = GoalType.Regular;
+
   @IsString()
   userId: string;
 
@@ -53,10 +58,25 @@ export class CreateGoalDto {
   @Transform(({ value }) => new Date(value))
   endDate?: Date;
 
+  @IsDate()
+  @IsOptional()
+  @Transform(({ value }) => new Date(value))
+  completedDate?: Date;
+
   @IsBoolean()
   @IsOptional()
   @Transform(({ value }) => value === 'true' || value === true)
   noDeadline?: boolean;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(1)
+  habitDuration?: number; // количество дней для привычки
+
+  @IsArray()
+  @IsEnum(DayOfWeek, { each: true })
+  @IsOptional()
+  habitDaysOfWeek?: DayOfWeek[]; // дни недели для привычки
 
   @IsOptional()
   image?: string;
