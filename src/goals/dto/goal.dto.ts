@@ -71,12 +71,23 @@ export class CreateGoalDto {
   @IsNumber()
   @IsOptional()
   @Min(1)
-  habitDuration?: number; // количество дней для привычки
+  @Transform(({ value }) => (value ? parseInt(value) : undefined))
+  habitDuration?: number;
 
   @IsArray()
   @IsEnum(DayOfWeek, { each: true })
   @IsOptional()
-  habitDaysOfWeek?: DayOfWeek[]; // дни недели для привычки
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value);
+      } catch {
+        return [];
+      }
+    }
+    return Array.isArray(value) ? value : [];
+  })
+  habitDaysOfWeek?: DayOfWeek[];
 
   @IsOptional()
   image?: string;
