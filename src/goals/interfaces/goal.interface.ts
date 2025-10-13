@@ -34,11 +34,17 @@ export enum ActivityType {
   UpdatedDeadline = 'updatedDeadline',
   EditedGoal = 'editedGoal',
   CompletedGoal = 'completedGoal',
+  MarkHabitDay = 'markHabitDay',
 }
 
 export interface Activity {
   activityType: ActivityType;
   date: Date;
+}
+
+export interface HabitDay {
+  date: Date;
+  isCompleted: boolean;
 }
 
 export interface Goal extends Document {
@@ -52,6 +58,7 @@ export interface Goal extends Document {
   noDeadline?: boolean;
   habitDuration?: number;
   habitDaysOfWeek?: DayOfWeek[];
+  habitCompletedDays?: HabitDay[];
   image?: string;
   steps: Step[];
   activity: Activity[];
@@ -89,6 +96,7 @@ export interface LandingGoal {
   noDeadline?: boolean;
   habitDuration?: number;
   habitDaysOfWeek?: DayOfWeek[];
+  habitCompletedDays?: HabitDay[];
   image?: string;
   steps: Step[];
   activity: Activity[];

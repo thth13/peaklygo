@@ -402,6 +402,126 @@ export class GoalsService {
     return updatedGoal;
   }
 
+  async markHabitDay(
+    goalId: string,
+    date: Date,
+    isCompleted: boolean,
+  ): Promise<Goal> {
+    const goal = await this.goalModel.findById(goalId).exec();
+
+    if (!goal) {
+      throw new NotFoundException('Goal not found');
+    }
+
+    const normalizedDate = new Date(
+      Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
+    );
+
+    // Ищем существующую запись для этой даты
+    const existingDayIndex =
+      goal.habitCompletedDays?.findIndex(
+        (day) => day.date.toDateString() === normalizedDate.toDateString(),
+      ) ?? -1;
+
+    if (existingDayIndex >= 0) {
+      // Обновляем существующую запись
+      goal.habitCompletedDays[existingDayIndex].isCompleted = isCompleted;
+    } else {
+      // Создаем новую запись
+      if (!goal.habitCompletedDays) {
+        goal.habitCompletedDays = [];
+      }
+      goal.habitCompletedDays.push({
+        date: normalizedDate,
+        isCompleted,
+      });
+    }
+
+    // Добавляем активность
+    goal.activity.push({
+      activityType: ActivityType.MarkHabitDay,
+      date: new Date(),
+    });
+
+    const updatedGoal = await goal.save();
+
+    // Обновляем статистики и рейтинг
+    const ratingChange = Math.floor(goal.value / 10);
+
+    if (isCompleted) {
+      await this.profileService.incrementRating(goal.userId, ratingChange);
+    } else if (existingDayIndex >= 0 && !isCompleted) {
+      // Если день был отмечен как выполненный, но теперь отменяется
+      await this.profileService.decrementRating(goal.userId, ratingChange);
+    }
+
+    return updatedGoal;
+  }
+
+  async getHabitStats(goalId: string): Promise<{
+    totalDays: number;
+    completedDays: number;
+    successRate: number;
+    currentStreak: number;
+    longestStreak: number;
+  }> {
+    const goal = await this.goalModel.findById(goalId).exec();
+
+    if (!goal) {
+      throw new NotFoundException('Goal not found');
+    }
+
+    if (goal.goalType !== 'habit') {
+      throw new BadRequestException(
+        'This operation is only available for habit goals',
+      );
+    }
+
+    const habitDays = goal.habitCompletedDays || [];
+    const totalDays = habitDays.length;
+    const completedDays = habitDays.filter((day) => day.isCompleted).length;
+    const successRate = totalDays > 0 ? (completedDays / totalDays) * 100 : 0;
+
+    // Подсчет текущей серии
+    let currentStreak = 0;
+    const sortedDays = habitDays.sort(
+      (a, b) => b.date.getTime() - a.date.getTime(),
+    );
+
+    for (const day of sortedDays) {
+      if (day.isCompleted) {
+        currentStreak++;
+      } else {
+        break;
+      }
+    }
+
+    // Подсчет самой длинной серии
+    let longestStreak = 0;
+    let tempStreak = 0;
+
+    const sortedDaysAsc = habitDays.sort(
+      (a, b) => a.date.getTime() - b.date.getTime(),
+    );
+
+    for (const day of sortedDaysAsc) {
+      if (day.isCompleted) {
+        tempStreak++;
+        longestStreak = Math.max(longestStreak, tempStreak);
+      } else {
+        tempStreak = 0;
+      }
+    }
+
+    return {
+      totalDays,
+      completedDays,
+      successRate: Math.round(successRate * 100) / 100,
+      currentStreak,
+      longestStreak,
+    };
+  }
+
   async getLandingGoals(): Promise<LandingGoal[]> {
     const goals = await this.goalModel
       .find({ __v: 999 })

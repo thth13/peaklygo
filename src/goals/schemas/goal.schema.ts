@@ -45,6 +45,9 @@ export class Goal {
   })
   habitDaysOfWeek?: DayOfWeek[];
 
+  @Prop({ type: [Object], default: [] })
+  habitCompletedDays?: any[];
+
   @Prop()
   image: string;
 
@@ -105,3 +108,13 @@ export class Activity {
   date: Date;
 }
 export const ActivitySchema = SchemaFactory.createForClass(Activity);
+
+export class HabitDaySchema {
+  @Prop({ required: true })
+  date: Date;
+
+  @Prop({ required: true, default: false })
+  isCompleted: boolean;
+}
+export const HabitDaySchemaFactory =
+  SchemaFactory.createForClass(HabitDaySchema);

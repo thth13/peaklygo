@@ -21,6 +21,7 @@ import {
   CreateStepDto,
   GetGoalsPaginationDto,
   UpdateStepDto,
+  MarkHabitDayDto,
 } from './dto/goal.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CheckAccessGuard } from '../auth/guards/checkAccess.guard';
@@ -173,5 +174,26 @@ export class GoalsController {
     @Body() updateStepDto: UpdateStepDto,
   ) {
     return await this.goalsService.editStep(goalId, stepId, updateStepDto);
+  }
+
+  @Put(':id/markHabitDay')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async markHabitDay(
+    @Param('id') goalId: string,
+    @Body() markHabitDayDto: MarkHabitDayDto,
+  ) {
+    return await this.goalsService.markHabitDay(
+      goalId,
+      markHabitDayDto.date,
+      markHabitDayDto.isCompleted,
+    );
+  }
+
+  @Get(':id/habitStats')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async getHabitStats(@Param('id') goalId: string) {
+    return await this.goalsService.getHabitStats(goalId);
   }
 }

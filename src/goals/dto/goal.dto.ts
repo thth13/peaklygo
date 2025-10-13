@@ -176,6 +176,15 @@ export class UpdateStepDto {
   text: string;
 }
 
+export class MarkHabitDayDto {
+  @IsDate()
+  @Transform(({ value }) => new Date(value))
+  date: Date;
+
+  @IsBoolean()
+  isCompleted: boolean;
+}
+
 export enum GoalFilterType {
   ACTIVE = 'active',
   COMPLETED = 'completed',
