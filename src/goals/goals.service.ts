@@ -443,6 +443,9 @@ export class GoalsService {
       date: new Date(),
     });
 
+    goal.markModified('habitCompletedDays');
+    goal.markModified('activity');
+
     const updatedGoal = await goal.save();
 
     // Обновляем статистики и рейтинг
