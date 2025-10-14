@@ -35,6 +35,7 @@ export enum ActivityType {
   EditedGoal = 'editedGoal',
   CompletedGoal = 'completedGoal',
   MarkHabitDay = 'markHabitDay',
+  UnmarkHabitDay = 'unmarkHabitDay',
 }
 
 export interface Activity {

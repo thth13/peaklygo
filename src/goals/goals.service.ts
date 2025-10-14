@@ -439,7 +439,9 @@ export class GoalsService {
 
     // Добавляем активность
     goal.activity.push({
-      activityType: ActivityType.MarkHabitDay,
+      activityType: isCompleted
+        ? ActivityType.MarkHabitDay
+        : ActivityType.UnmarkHabitDay,
       date: new Date(),
     });
 
