@@ -24,6 +24,8 @@ import {
   LandingGoal,
 } from './interfaces/goal.interface';
 import { ProfileService } from 'src/profile/profile.service';
+import { NotificationsService } from 'src/notifications/notifications.service';
+import { NotificationType } from 'src/notifications/interfaces/notification.interface';
 
 @Injectable()
 export class GoalsService {
@@ -31,6 +33,7 @@ export class GoalsService {
     @InjectModel(Goal.name) private goalModel: Model<GoalDocument>,
     @InjectS3() private readonly s3: S3,
     private readonly profileService: ProfileService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(
@@ -72,7 +75,7 @@ export class GoalsService {
 
     let query: any = {
       userId: new Types.ObjectId(userId),
-      $or: [{ isGroup: false }, { isGroup: { $exists: false } }],
+      isGroup: { $ne: true },
     };
 
     switch (filter) {
@@ -647,6 +650,19 @@ export class GoalsService {
       this.profileService.incrementActiveGoals(userObjectId),
     ]);
 
+    await this.notificationsService.createMany(
+      participantIds.map((participantId) => ({
+        userId: participantId,
+        type: NotificationType.GroupInvite,
+        title: 'Group goal invitation',
+        message: `You have been invited to the group goal "${savedGoal.goalName}"`,
+        metadata: {
+          goalId: savedGoal._id,
+          inviterId: createGoalDto.userId,
+        },
+      })),
+    );
+
     return savedGoal;
   }
 
@@ -713,7 +729,20 @@ export class GoalsService {
     goal.participants = goal.participants || [];
     goal.participants.push(newParticipant);
 
-    return await goal.save();
+    const updatedGoal = await goal.save();
+
+    await this.notificationsService.create({
+      userId: newParticipantId,
+      type: NotificationType.GroupInvite,
+      title: 'Group goal invitation',
+      message: `You have been invited to the group goal "${goal.goalName}"`,
+      metadata: {
+        goalId: goal._id,
+        inviterId: userId,
+      },
+    });
+
+    return updatedGoal;
   }
 
   async respondToInvitation(

@@ -21,6 +21,7 @@ import {
 } from 'src/auth/schemas/refresh-token-schema';
 import { JwtModule } from '@nestjs/jwt';
 import { ProfileService } from './profile.service';
+import { NotificationsModule } from 'src/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { ProfileService } from './profile.service';
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '5 days' },
     }),
+    NotificationsModule,
   ],
   controllers: [ProfileController],
   providers: [ProfileService, UserService, AuthService],
