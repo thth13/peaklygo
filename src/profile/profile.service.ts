@@ -172,6 +172,71 @@ export class ProfileService {
       .exec();
   }
 
+  async searchUsersForInvite(
+    query: string,
+    limit: number = 10,
+    excludeIds: Types.ObjectId[] = [],
+  ): Promise<
+    Array<{
+      userId: string;
+      username: string;
+      name?: string;
+      avatar?: string;
+    }>
+  > {
+    const sanitizedLimit = Math.max(1, Math.min(limit, 50));
+    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escapedQuery, 'i');
+
+    const pipeline: any[] = [
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'user',
+          foreignField: '_id',
+          as: 'userInfo',
+        },
+      },
+      { $unwind: '$userInfo' },
+      {
+        $match: {
+          ...(excludeIds.length
+            ? { 'userInfo._id': { $nin: excludeIds } }
+            : {}),
+          $or: [
+            { 'userInfo.username': regex },
+            { name: regex },
+            { 'userInfo.email': regex },
+          ],
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          userId: '$userInfo._id',
+          username: '$userInfo.username',
+          name: '$name',
+          avatar: '$avatar',
+        },
+      },
+      {
+        $sort: {
+          username: 1,
+        },
+      },
+      { $limit: sanitizedLimit },
+    ];
+
+    const results = await this.profileModel.aggregate(pipeline).exec();
+
+    return results.map((item) => ({
+      userId: item.userId.toString(),
+      username: item.username,
+      name: item.name ?? undefined,
+      avatar: item.avatar ?? undefined,
+    }));
+  }
+
   /**
    * Recalculate statistics for every user and persist updated values.
    */

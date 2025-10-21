@@ -9,6 +9,7 @@ import { UserModule } from './user/user.module';
 import { ProfileModule } from './profile/profile.module';
 import { GoalsModule } from './goals/goals.module';
 import { ProgressEntryModule } from './progress-entry/progress-entry.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { ProgressEntryModule } from './progress-entry/progress-entry.module';
     ProfileModule,
     GoalsModule,
     ProgressEntryModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}

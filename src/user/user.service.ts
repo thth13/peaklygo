@@ -26,6 +26,8 @@ import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { GoogleCodeResponse } from 'src/types';
 import { PremiumType } from './dto/get-premium.dto';
 import { UserErrorCode } from './user-error-code.enum';
+import { NotificationsService } from 'src/notifications/notifications.service';
+import { NotificationType } from 'src/notifications/interfaces/notification.interface';
 
 @Injectable()
 export class UserService {
@@ -40,6 +42,7 @@ export class UserService {
     private readonly forgotPasswordModel: Model<ForgotPassword>,
     private readonly authService: AuthService,
     @InjectS3() private readonly s3: S3,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(
@@ -226,6 +229,17 @@ export class UserService {
     );
 
     const duration = type === PremiumType.YEAR ? '1 year' : '1 month';
+
+    await this.notificationsService.create({
+      userId,
+      type: NotificationType.Subscription,
+      title: 'Subscription activated',
+      message: `Your premium subscription has been activated for ${duration}.`,
+      metadata: {
+        subscriptionType: type,
+        expiresAt: expiresDate,
+      },
+    });
 
     return {
       id: updated._id,

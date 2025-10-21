@@ -6,6 +6,7 @@ import { User, UserSchema } from './schemas/user.schema';
 import { AuthModule } from 'src/auth/auth.module';
 import { ForgotPassword, ForgotPasswordSchema } from './schemas/forgot-password.schema';
 import { Profile, ProfileSchema } from 'src/profile/schemas/profile.schema';
+import { NotificationsModule } from 'src/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { Profile, ProfileSchema } from 'src/profile/schemas/profile.schema';
     MongooseModule.forFeature([{ name: ForgotPassword.name, schema: ForgotPasswordSchema }]),
     MongooseModule.forFeature([{ name: Profile.name, schema: ProfileSchema }]),
     AuthModule,
+    NotificationsModule,
   ],
   controllers: [UserController],
   providers: [UserService],
