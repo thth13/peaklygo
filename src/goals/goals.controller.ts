@@ -22,6 +22,10 @@ import {
   GetGoalsPaginationDto,
   UpdateStepDto,
   MarkHabitDayDto,
+  CreateGroupGoalDto,
+  AddParticipantDto,
+  RespondToInvitationDto,
+  SearchGroupUsersDto,
 } from './dto/goal.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CheckAccessGuard } from '../auth/guards/checkAccess.guard';
@@ -142,6 +146,7 @@ export class GoalsController {
       goalId,
       stepId,
       isCompleted,
+      req.user.id,
     );
   }
 
@@ -195,5 +200,117 @@ export class GoalsController {
   @UseGuards(JwtAuthGuard)
   async getHabitStats(@Param('id') goalId: string) {
     return await this.goalsService.getHabitStats(goalId);
+  }
+
+  @Post('group')
+  @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(
+    FileInterceptor('image', {
+      limits: {
+        fileSize: 20 * 1024 * 1024,
+      },
+      fileFilter: (_, file, cb) => {
+        if (file.mimetype.match(/\/(jpg|jpeg|png|gif|webp)$/)) {
+          cb(null, true);
+        } else {
+          cb(new Error('Unsupported file type'), false);
+        }
+      },
+    }),
+  )
+  @UseGuards(JwtAuthGuard)
+  async createGroupGoal(
+    @Body() createGroupGoalDto: any,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    const participantIds = createGroupGoalDto.participantIds || [];
+    return await this.goalsService.createGroupGoal(
+      createGroupGoalDto,
+      participantIds,
+      file,
+    );
+  }
+
+  @Get('group/users/search')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async searchUsersForGroupInvite(
+    @Request() req,
+    @Query() queryDto: SearchGroupUsersDto,
+  ) {
+    return await this.goalsService.searchUsersForGroupInvite(
+      req.user.id,
+      queryDto,
+    );
+  }
+
+  @Get('group/my')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async getMyGroupGoals(
+    @Request() req,
+    @Query() paginationDto: GetGoalsPaginationDto,
+  ) {
+    return await this.goalsService.getGroupGoals(req.user.id, paginationDto);
+  }
+
+  @Get('group/invitations')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async getGroupInvitations(@Request() req) {
+    return await this.goalsService.getGroupInvitations(req.user.id);
+  }
+
+  @Post(':goalId/participants')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard)
+  async addParticipant(
+    @Request() req,
+    @Param('goalId') goalId: string,
+    @Body() addParticipantDto: any,
+  ) {
+    return await this.goalsService.addParticipant(
+      goalId,
+      req.user.id,
+      addParticipantDto.userId,
+      addParticipantDto.role,
+    );
+  }
+
+  @Put(':goalId/invitations/respond')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async respondToInvitation(
+    @Request() req,
+    @Param('goalId') goalId: string,
+    @Body() respondDto: any,
+  ) {
+    return await this.goalsService.respondToInvitation(
+      goalId,
+      req.user.id,
+      respondDto.status,
+    );
+  }
+
+  @Delete(':goalId/participants/:participantId')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async removeParticipant(
+    @Request() req,
+    @Param('goalId') goalId: string,
+    @Param('participantId') participantId: string,
+  ) {
+    return await this.goalsService.removeParticipant(
+      goalId,
+      req.user.id,
+      participantId,
+    );
+  }
+
+  @Get(':goalId/group/stats')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async getGroupGoalStats(@Param('goalId') goalId: string) {
+    return await this.goalsService.getGroupGoalStats(goalId);
   }
 }

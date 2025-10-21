@@ -16,6 +16,7 @@ import {
   CreateStepDto,
   GetGoalsPaginationDto,
   GoalFilterType,
+  SearchGroupUsersDto,
 } from './dto/goal.dto';
 import {
   ActivityType,
@@ -44,6 +45,7 @@ export class GoalsService {
     const createdGoal = new this.goalModel({
       ...createGoalDto,
       userId: userObjectId,
+      isGroup: false,
     });
 
     const savedGoal = await createdGoal.save();
@@ -70,6 +72,7 @@ export class GoalsService {
 
     let query: any = {
       userId: new Types.ObjectId(userId),
+      $or: [{ isGroup: false }, { isGroup: { $exists: false } }],
     };
 
     switch (filter) {
@@ -82,7 +85,9 @@ export class GoalsService {
       case GoalFilterType.ACTIVE:
       default:
         query.isCompleted = { $ne: true };
-        query.$or = [{ isArchived: false }, { isArchived: { $exists: false } }];
+        query.$and = [
+          { $or: [{ isArchived: false }, { isArchived: { $exists: false } }] },
+        ];
         break;
     }
 
@@ -292,6 +297,7 @@ export class GoalsService {
     goalId: string,
     stepId: string,
     isCompleted: boolean,
+    userId?: string,
   ): Promise<Goal> {
     const goal = await this.goalModel
       .findOneAndUpdate(
@@ -322,12 +328,35 @@ export class GoalsService {
 
     const ratingChange = Math.floor(goal.value / 10);
 
+    // Для групповых целей обновляем вклад участника
+    if (goal.isGroup && userId) {
+      const participant = goal.participants?.find(
+        (p) => p.userId.toString() === userId,
+      );
+      if (participant) {
+        if (isCompleted) {
+          participant.contributionScore += ratingChange;
+        } else {
+          participant.contributionScore = Math.max(
+            0,
+            participant.contributionScore - ratingChange,
+          );
+        }
+        goal.markModified('participants');
+        await goal.save();
+      }
+    }
+
+    // Обновляем статистики для владельца или участника
+    const targetUserId =
+      goal.isGroup && userId ? new Types.ObjectId(userId) : goal.userId;
+
     if (isCompleted) {
-      await this.profileService.incrementClosedTasks(goal.userId);
-      await this.profileService.incrementRating(goal.userId, ratingChange);
+      await this.profileService.incrementClosedTasks(targetUserId);
+      await this.profileService.incrementRating(targetUserId, ratingChange);
     } else {
-      await this.profileService.decrementClosedTasks(goal.userId);
-      await this.profileService.decrementRating(goal.userId, ratingChange);
+      await this.profileService.decrementClosedTasks(targetUserId);
+      await this.profileService.decrementRating(targetUserId, ratingChange);
     }
 
     return this.goalModel.findById(goalId).exec();
@@ -524,6 +553,389 @@ export class GoalsService {
       successRate: Math.round(successRate * 100) / 100,
       currentStreak,
       longestStreak,
+    };
+  }
+
+  async searchUsersForGroupInvite(
+    requesterId: string,
+    queryDto: SearchGroupUsersDto,
+  ) {
+    const trimmedQuery = queryDto.query?.trim();
+
+    if (!trimmedQuery) {
+      throw new BadRequestException('Query is required');
+    }
+
+    const limit = Math.min(queryDto.limit ?? 10, 50);
+    const excludeSet = new Set<string>(
+      (queryDto.excludeUserIds || []).map((id) => id.trim()).filter(Boolean),
+    );
+
+    excludeSet.add(requesterId);
+
+    if (queryDto.goalId) {
+      const goal = await this.goalModel
+        .findById(queryDto.goalId)
+        .select('participants')
+        .exec();
+
+      if (!goal) {
+        throw new NotFoundException('Goal not found');
+      }
+
+      goal.participants?.forEach((participant) => {
+        excludeSet.add(participant.userId.toString());
+      });
+    }
+
+    const excludeObjectIds = Array.from(excludeSet)
+      .filter((id) => Types.ObjectId.isValid(id))
+      .map((id) => new Types.ObjectId(id));
+
+    return this.profileService.searchUsersForInvite(
+      trimmedQuery,
+      limit,
+      excludeObjectIds,
+    );
+  }
+
+  async createGroupGoal(
+    createGoalDto: any,
+    participantIds: string[],
+    image?: Express.Multer.File,
+  ): Promise<Goal> {
+    if (image) {
+      createGoalDto.image = await this.compressAndUploadImage(image);
+    }
+
+    const userObjectId = new Types.ObjectId(createGoalDto.userId);
+
+    // Создаем участников
+    const participants = [
+      {
+        userId: userObjectId,
+        role: 'owner',
+        invitationStatus: 'accepted',
+        joinedAt: new Date(),
+        contributionScore: 0,
+      },
+      ...participantIds.map((id) => ({
+        userId: new Types.ObjectId(id),
+        role: 'member',
+        invitationStatus: 'pending',
+        contributionScore: 0,
+      })),
+    ];
+
+    const createdGoal = new this.goalModel({
+      ...createGoalDto,
+      userId: userObjectId,
+      isGroup: true,
+      participants,
+      groupSettings: createGoalDto.groupSettings || {
+        allowMembersToInvite: false,
+        requireApproval: true,
+        maxParticipants: 10,
+      },
+    });
+
+    const savedGoal = await createdGoal.save();
+
+    // Инкремент статистик только для создателя
+    await Promise.all([
+      this.profileService.incrementGoalsCreatedThisMonth(userObjectId),
+      this.profileService.incrementActiveGoals(userObjectId),
+    ]);
+
+    return savedGoal;
+  }
+
+  async addParticipant(
+    goalId: string,
+    userId: string,
+    newParticipantId: string,
+    role: string = 'member',
+  ): Promise<Goal> {
+    const goal = await this.goalModel.findById(goalId).exec();
+
+    if (!goal) {
+      throw new NotFoundException('Goal not found');
+    }
+
+    if (!goal.isGroup) {
+      throw new BadRequestException('This is not a group goal');
+    }
+
+    // Проверка прав
+    const requester = goal.participants?.find(
+      (p) => p.userId.toString() === userId,
+    );
+
+    if (!requester) {
+      throw new BadRequestException('You are not a participant of this goal');
+    }
+
+    const canInvite =
+      requester.role === 'owner' ||
+      requester.role === 'admin' ||
+      (requester.role === 'member' && goal.groupSettings?.allowMembersToInvite);
+
+    if (!canInvite) {
+      throw new BadRequestException(
+        'You do not have permission to add participants',
+      );
+    }
+
+    // Проверка лимита участников
+    const currentParticipants = goal.participants?.length || 0;
+    const maxParticipants = goal.groupSettings?.maxParticipants || 10;
+
+    if (currentParticipants >= maxParticipants) {
+      throw new BadRequestException('Maximum number of participants reached');
+    }
+
+    // Проверка что участник еще не добавлен
+    const alreadyParticipant = goal.participants?.some(
+      (p) => p.userId.toString() === newParticipantId,
+    );
+
+    if (alreadyParticipant) {
+      throw new BadRequestException('User is already a participant');
+    }
+
+    const newParticipant = {
+      userId: new Types.ObjectId(newParticipantId),
+      role: role as any,
+      invitationStatus: 'pending' as any,
+      contributionScore: 0,
+    };
+
+    goal.participants = goal.participants || [];
+    goal.participants.push(newParticipant);
+
+    return await goal.save();
+  }
+
+  async respondToInvitation(
+    goalId: string,
+    userId: string,
+    status: 'accepted' | 'declined',
+  ): Promise<Goal> {
+    const goal = await this.goalModel.findById(goalId).exec();
+
+    if (!goal) {
+      throw new NotFoundException('Goal not found');
+    }
+
+    if (!goal.isGroup) {
+      throw new BadRequestException('This is not a group goal');
+    }
+
+    const participant = goal.participants?.find(
+      (p) => p.userId.toString() === userId,
+    );
+
+    if (!participant) {
+      throw new NotFoundException('Invitation not found');
+    }
+
+    if (participant.invitationStatus !== 'pending') {
+      throw new BadRequestException('Invitation already responded');
+    }
+
+    participant.invitationStatus = status as any;
+
+    if (status === 'accepted') {
+      participant.joinedAt = new Date();
+      await this.profileService.incrementActiveGoals(
+        new Types.ObjectId(userId),
+      );
+    }
+
+    goal.markModified('participants');
+    return await goal.save();
+  }
+
+  async removeParticipant(
+    goalId: string,
+    requesterId: string,
+    participantId: string,
+  ): Promise<Goal> {
+    const goal = await this.goalModel.findById(goalId).exec();
+
+    if (!goal) {
+      throw new NotFoundException('Goal not found');
+    }
+
+    if (!goal.isGroup) {
+      throw new BadRequestException('This is not a group goal');
+    }
+
+    const requester = goal.participants?.find(
+      (p) => p.userId.toString() === requesterId,
+    );
+
+    if (!requester) {
+      throw new BadRequestException('You are not a participant of this goal');
+    }
+
+    const participantToRemove = goal.participants?.find(
+      (p) => p.userId.toString() === participantId,
+    );
+
+    if (!participantToRemove) {
+      throw new NotFoundException('Participant not found');
+    }
+
+    // Проверка прав: owner и admin могут удалять любых, member только себя
+    const canRemove =
+      requester.role === 'owner' ||
+      requester.role === 'admin' ||
+      requesterId === participantId;
+
+    if (!canRemove) {
+      throw new BadRequestException(
+        'You do not have permission to remove this participant',
+      );
+    }
+
+    // Нельзя удалить владельца
+    if (participantToRemove.role === 'owner') {
+      throw new BadRequestException('Cannot remove the goal owner');
+    }
+
+    goal.participants = goal.participants?.filter(
+      (p) => p.userId.toString() !== participantId,
+    );
+
+    // Декремент активных целей если участник принял приглашение
+    if (participantToRemove.invitationStatus === 'accepted') {
+      await this.profileService.decrementActiveGoals(
+        new Types.ObjectId(participantId),
+      );
+    }
+
+    goal.markModified('participants');
+    return await goal.save();
+  }
+
+  async getGroupGoals(
+    userId: string,
+    paginationDto: GetGoalsPaginationDto,
+  ): Promise<PaginatedGoalsResponse> {
+    const {
+      page = 1,
+      limit = 10,
+      filter = GoalFilterType.ACTIVE,
+    } = paginationDto;
+    const skip = (page - 1) * limit;
+
+    const userObjectId = new Types.ObjectId(userId);
+
+    let query: any = {
+      isGroup: true,
+      'participants.userId': userObjectId,
+      'participants.invitationStatus': 'accepted',
+    };
+
+    switch (filter) {
+      case GoalFilterType.COMPLETED:
+        query.isCompleted = true;
+        break;
+      case GoalFilterType.ARCHIVED:
+        query.isArchived = true;
+        break;
+      case GoalFilterType.ACTIVE:
+      default:
+        query.isCompleted = { $ne: true };
+        query.$or = [{ isArchived: false }, { isArchived: { $exists: false } }];
+        break;
+    }
+
+    const [goals, total] = await Promise.all([
+      this.goalModel
+        .find(query)
+        .populate('participants.userId', 'username')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+      this.goalModel.countDocuments(query),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      goals: goals as any[],
+      total,
+      page,
+      limit,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    };
+  }
+
+  async getGroupInvitations(userId: string): Promise<Goal[]> {
+    const userObjectId = new Types.ObjectId(userId);
+
+    return await this.goalModel
+      .find({
+        isGroup: true,
+        'participants.userId': userObjectId,
+        'participants.invitationStatus': 'pending',
+      })
+      .populate('userId', 'username')
+      .populate('participants.userId', 'username')
+      .sort({ createdAt: -1 })
+      .exec();
+  }
+
+  async getGroupGoalStats(goalId: string): Promise<{
+    totalParticipants: number;
+    activeParticipants: number;
+    pendingInvitations: number;
+    topContributors: Array<{
+      userId: Types.ObjectId;
+      contributionScore: number;
+    }>;
+  }> {
+    const goal = await this.goalModel
+      .findById(goalId)
+      .populate('participants.userId', 'username')
+      .exec();
+
+    if (!goal) {
+      throw new NotFoundException('Goal not found');
+    }
+
+    if (!goal.isGroup) {
+      throw new BadRequestException('This is not a group goal');
+    }
+
+    const participants = goal.participants || [];
+    const totalParticipants = participants.length;
+    const activeParticipants = participants.filter(
+      (p) => p.invitationStatus === 'accepted',
+    ).length;
+    const pendingInvitations = participants.filter(
+      (p) => p.invitationStatus === 'pending',
+    ).length;
+
+    const topContributors = participants
+      .filter((p) => p.invitationStatus === 'accepted')
+      .sort((a, b) => b.contributionScore - a.contributionScore)
+      .slice(0, 5)
+      .map((p) => ({
+        userId: p.userId,
+        contributionScore: p.contributionScore,
+      }));
+
+    return {
+      totalParticipants,
+      activeParticipants,
+      pendingInvitations,
+      topContributors,
     };
   }
 
