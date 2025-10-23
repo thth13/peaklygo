@@ -220,7 +220,7 @@ export class GoalsController {
   )
   @UseGuards(JwtAuthGuard)
   async createGroupGoal(
-    @Body() createGroupGoalDto: any,
+    @Body() createGroupGoalDto: CreateGroupGoalDto,
     @UploadedFile() file: Express.Multer.File,
   ) {
     const participantIds = createGroupGoalDto.participantIds || [];
