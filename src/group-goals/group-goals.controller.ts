@@ -97,9 +97,8 @@ export class GroupGoalsController {
 
   @Get('group/:goalId')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
-  async getGroupGoalById(@Request() req, @Param('goalId') goalId: string) {
-    return await this.groupGoalsService.getGroupGoalById(goalId, req.user.id);
+  async getGroupGoalById(@Param('goalId') goalId: string) {
+    return await this.groupGoalsService.getGroupGoalById(goalId);
   }
 
   @Post(':goalId/participants')

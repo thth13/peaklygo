@@ -402,10 +402,7 @@ export class GroupGoalsService {
       .exec();
   }
 
-  async getGroupGoalById(
-    goalId: string,
-    userId: string,
-  ): Promise<GroupGoalDocument> {
+  async getGroupGoalById(goalId: string): Promise<GroupGoalDocument> {
     const goal = await this.groupGoalModel
       .findById(goalId)
       .populate('userId', 'username')
@@ -418,14 +415,6 @@ export class GroupGoalsService {
 
     if (!goal.isGroup) {
       throw new BadRequestException('This is not a group goal');
-    }
-
-    const participant = goal.participants?.find(
-      (p) => p.userId._id.toString() === userId,
-    );
-
-    if (!participant) {
-      throw new BadRequestException('You are not a participant of this goal');
     }
 
     return goal;
