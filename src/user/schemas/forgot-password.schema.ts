@@ -13,31 +13,32 @@ export class ForgotPassword {
   verification: string;
 
   @Prop({ default: false })
-  firstUsed: Boolean;
+  firstUsed: boolean;
 
   @Prop({ default: false })
-  finalUsed: Boolean;
+  finalUsed: boolean;
 
   @Prop({ required: true })
   expires: Date;
 
   @Prop({ required: true })
-  ip: String;
+  ip: string;
 
   @Prop({ required: true })
-  browser: String;
+  browser: string;
 
   @Prop({ required: true })
-  country: String;
+  country: string;
 
   @Prop()
-  ipChanged: String;
+  ipChanged: string;
 
   @Prop()
-  browserChanged: String;
+  browserChanged: string;
 
   @Prop()
-  countryChanged: String;
+  countryChanged: string;
 }
 
-export const ForgotPasswordSchema = SchemaFactory.createForClass(ForgotPassword);
+export const ForgotPasswordSchema =
+  SchemaFactory.createForClass(ForgotPassword);

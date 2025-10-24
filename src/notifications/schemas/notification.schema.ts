@@ -35,5 +35,4 @@ export class Notification {
   readAt?: Date;
 }
 
-export const NotificationSchema =
-  SchemaFactory.createForClass(Notification);
+export const NotificationSchema = SchemaFactory.createForClass(Notification);

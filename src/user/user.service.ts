@@ -102,7 +102,7 @@ export class UserService {
         password: v4(),
       });
 
-      let profile = new this.profileModel({
+      const profile = new this.profileModel({
         user: user.id,
         name: googlePayload.given_name,
       });

@@ -5,21 +5,7 @@ import {
   GoalType,
   DayOfWeek,
   PrivaciyStatus,
-  ParticipantRole,
-  InvitationStatus,
 } from '../interfaces/goal.interface';
-
-export class GroupSettings {
-  @Prop({ default: false })
-  allowMembersToInvite: boolean;
-
-  @Prop({ default: true })
-  requireApproval: boolean;
-
-  @Prop({ default: 10 })
-  maxParticipants: number;
-}
-export const GroupSettingsSchema = SchemaFactory.createForClass(GroupSettings);
 
 export type GoalDocument = Goal & Document;
 
@@ -98,15 +84,6 @@ export class Goal {
 
   @Prop({ type: [Object], default: [] })
   activity: Activity[];
-
-  @Prop({ default: false })
-  isGroup: boolean;
-
-  @Prop({ type: [Object], default: [] })
-  participants?: Participant[];
-
-  @Prop({ type: Object })
-  groupSettings?: GroupSettings;
 }
 
 export const GoalSchema = SchemaFactory.createForClass(Goal);
@@ -141,29 +118,3 @@ export class HabitDaySchema {
 }
 export const HabitDaySchemaFactory =
   SchemaFactory.createForClass(HabitDaySchema);
-
-export class Participant {
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  userId: Types.ObjectId;
-
-  @Prop({
-    type: String,
-    enum: Object.values(ParticipantRole),
-    required: true,
-  })
-  role: ParticipantRole;
-
-  @Prop({
-    type: String,
-    enum: Object.values(InvitationStatus),
-    default: InvitationStatus.Pending,
-  })
-  invitationStatus: InvitationStatus;
-
-  @Prop()
-  joinedAt?: Date;
-
-  @Prop({ default: 0 })
-  contributionScore: number;
-}
-export const ParticipantSchema = SchemaFactory.createForClass(Participant);

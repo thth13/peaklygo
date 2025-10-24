@@ -1,4 +1,11 @@
-import { IsEnum, IsMongoId, IsNotEmpty, IsObject, IsOptional, IsString } from 'class-validator';
+import {
+  IsEnum,
+  IsMongoId,
+  IsNotEmpty,
+  IsObject,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { NotificationType } from '../interfaces/notification.interface';
 
 export class CreateNotificationDto {

@@ -11,18 +11,6 @@ export enum GoalType {
   Habit = 'habit',
 }
 
-export enum ParticipantRole {
-  Owner = 'owner',
-  Admin = 'admin',
-  Member = 'member',
-}
-
-export enum InvitationStatus {
-  Pending = 'pending',
-  Accepted = 'accepted',
-  Declined = 'declined',
-}
-
 export enum DayOfWeek {
   Monday = 'monday',
   Tuesday = 'tuesday',
@@ -60,20 +48,6 @@ export interface HabitDay {
   isCompleted: boolean;
 }
 
-export interface Participant {
-  userId: Types.ObjectId;
-  role: ParticipantRole;
-  invitationStatus: InvitationStatus;
-  joinedAt?: Date;
-  contributionScore: number;
-}
-
-export interface GroupSettings {
-  allowMembersToInvite: boolean;
-  requireApproval: boolean;
-  maxParticipants: number;
-}
-
 export interface Goal extends Document {
   goalName: string;
   category: string;
@@ -97,9 +71,6 @@ export interface Goal extends Document {
   value: number;
   userId: Types.ObjectId;
   progress: number;
-  isGroup: boolean;
-  participants?: Participant[];
-  groupSettings?: GroupSettings;
   createdAt: Date;
   updatedAt: Date;
 }

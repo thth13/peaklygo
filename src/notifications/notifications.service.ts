@@ -109,7 +109,10 @@ export class NotificationsService {
     }
   }
 
-  async markManyAsRead(userId: string, notificationIds: string[]): Promise<void> {
+  async markManyAsRead(
+    userId: string,
+    notificationIds: string[],
+  ): Promise<void> {
     const objectIds = notificationIds.map((id) => new Types.ObjectId(id));
 
     await this.notificationModel.updateMany(
