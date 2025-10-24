@@ -1,6 +1,7 @@
 import {
   IsArray,
   IsBoolean,
+  IsDate,
   IsEnum,
   IsMongoId,
   IsNotEmpty,
@@ -12,13 +13,57 @@ import {
   Min,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
-import { CreateGoalDto } from '../../goals/dto/goal.dto';
+import { DayOfWeek } from '../../goals/interfaces/goal.interface';
 
-export class CreateGroupGoalDto extends CreateGoalDto {
-  @IsBoolean()
+export class CreateGroupGoalDto {
+  @IsString()
+  @IsNotEmpty()
+  goalName: string;
+
+  @IsString()
+  @IsNotEmpty()
+  category: string;
+
+  @IsString()
   @IsOptional()
-  @Transform(({ value }) => value === 'true' || value === true)
-  isGroup?: boolean = true;
+  description?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  userId: string;
+
+  @IsDate()
+  @Transform(({ value }) => new Date(value))
+  startDate: Date;
+
+  @IsDate()
+  @IsOptional()
+  @Transform(({ value }) => (value ? new Date(value) : undefined))
+  endDate?: Date;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(1)
+  @Transform(({ value }) => (value ? parseInt(value) : undefined))
+  habitDuration?: number;
+
+  @IsArray()
+  @IsEnum(DayOfWeek, { each: true })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value);
+      } catch {
+        return [];
+      }
+    }
+    return Array.isArray(value) ? value : [];
+  })
+  habitDaysOfWeek?: DayOfWeek[];
+
+  @IsOptional()
+  image?: string;
 
   @IsArray()
   @IsString({ each: true })

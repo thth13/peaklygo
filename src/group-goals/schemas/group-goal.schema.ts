@@ -141,6 +141,14 @@ export class GroupGoal {
     },
   })
   groupSettings: GroupSettings;
+
+  @Prop({ type: [Object], default: [] })
+  CheckIns: Array<{
+    userId: Types.ObjectId;
+    date: Date;
+    status: 'completed' | 'missed' | 'pending';
+    createdAt: Date;
+  }>;
 }
 
 export const GroupGoalSchema = SchemaFactory.createForClass(GroupGoal);

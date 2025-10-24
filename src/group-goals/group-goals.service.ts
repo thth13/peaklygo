@@ -48,7 +48,7 @@ export class GroupGoalsService {
     createGroupGoalDto: CreateGroupGoalDto,
     participantIds: string[],
     image?: Express.Multer.File,
-  ): Promise<GroupGoal> {
+  ): Promise<GroupGoalDocument> {
     if (image) {
       createGroupGoalDto.image = await this.compressAndUploadImage(image);
     }
@@ -156,7 +156,7 @@ export class GroupGoalsService {
     userId: string,
     newParticipantId: string,
     role: string = 'member',
-  ): Promise<GroupGoal> {
+  ): Promise<GroupGoalDocument> {
     const goal = await this.groupGoalModel.findById(goalId).exec();
 
     if (!goal) {
@@ -231,7 +231,7 @@ export class GroupGoalsService {
     goalId: string,
     userId: string,
     status: 'accepted' | 'declined',
-  ): Promise<GroupGoal> {
+  ): Promise<GroupGoalDocument> {
     const goal = await this.groupGoalModel.findById(goalId).exec();
 
     if (!goal) {
@@ -274,7 +274,7 @@ export class GroupGoalsService {
     goalId: string,
     requesterId: string,
     participantId: string,
-  ): Promise<GroupGoal> {
+  ): Promise<GroupGoalDocument> {
     const goal = await this.groupGoalModel.findById(goalId).exec();
 
     if (!goal) {
@@ -387,7 +387,7 @@ export class GroupGoalsService {
     };
   }
 
-  async getGroupInvitations(userId: string): Promise<GroupGoal[]> {
+  async getGroupInvitations(userId: string): Promise<GroupGoalDocument[]> {
     const userObjectId = new Types.ObjectId(userId);
 
     return await this.groupGoalModel
@@ -400,6 +400,35 @@ export class GroupGoalsService {
       .populate('participants.userId', 'username')
       .sort({ createdAt: -1 })
       .exec();
+  }
+
+  async getGroupGoalById(
+    goalId: string,
+    userId: string,
+  ): Promise<GroupGoalDocument> {
+    const goal = await this.groupGoalModel
+      .findById(goalId)
+      .populate('userId', 'username')
+      .populate('participants.userId', 'username')
+      .exec();
+
+    if (!goal) {
+      throw new NotFoundException('Goal not found');
+    }
+
+    if (!goal.isGroup) {
+      throw new BadRequestException('This is not a group goal');
+    }
+
+    const participant = goal.participants?.find(
+      (p) => p.userId._id.toString() === userId,
+    );
+
+    if (!participant) {
+      throw new BadRequestException('You are not a participant of this goal');
+    }
+
+    return goal;
   }
 
   async getGroupGoalStats(goalId: string): Promise<{
@@ -455,7 +484,7 @@ export class GroupGoalsService {
     stepId: string,
     isCompleted: boolean,
     userId: string,
-  ): Promise<GroupGoal> {
+  ): Promise<GroupGoalDocument> {
     const goal = await this.groupGoalModel
       .findOneAndUpdate(
         {
@@ -521,7 +550,7 @@ export class GroupGoalsService {
   async createStep(
     goalId: string,
     createStepDto: CreateStepDto,
-  ): Promise<GroupGoal> {
+  ): Promise<GroupGoalDocument> {
     const goal = await this.groupGoalModel.findById(goalId).exec();
 
     if (!goal) {
@@ -546,7 +575,7 @@ export class GroupGoalsService {
     return this.groupGoalModel.findById(goalId).exec();
   }
 
-  async deleteStep(goalId: string, stepId: string): Promise<GroupGoal> {
+  async deleteStep(goalId: string, stepId: string): Promise<GroupGoalDocument> {
     const goal = await this.groupGoalModel.findById(goalId).exec();
 
     if (!goal) {
@@ -574,7 +603,7 @@ export class GroupGoalsService {
     goalId: string,
     stepId: string,
     updateStepDto: UpdateStepDto,
-  ): Promise<GroupGoal> {
+  ): Promise<GroupGoalDocument> {
     const goal = await this.groupGoalModel.findById(goalId).exec();
 
     if (!goal) {
