@@ -5,6 +5,7 @@ import { GroupGoalsService } from './group-goals.service';
 import { GroupGoal, GroupGoalSchema } from './schemas/group-goal.schema';
 import { ProfileModule } from 'src/profile/profile.module';
 import { NotificationsModule } from 'src/notifications/notifications.module';
+import { ProgressEntryModule } from 'src/progress-entry/progress-entry.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { NotificationsModule } from 'src/notifications/notifications.module';
     ]),
     ProfileModule,
     NotificationsModule,
+    ProgressEntryModule,
   ],
   controllers: [GroupGoalsController],
   providers: [GroupGoalsService],

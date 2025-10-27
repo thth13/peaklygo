@@ -17,6 +17,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { UserId } from 'src/auth/decorators/user-id.decorator';
 import { GroupGoalsService } from './group-goals.service';
 import {
   AddParticipantDto,
@@ -29,10 +30,22 @@ import {
   GetGoalsPaginationDto,
   UpdateStepDto,
 } from 'src/goals/dto/goal.dto';
+import { ProgressEntryService } from 'src/progress-entry/progress-entry.service';
+import {
+  CreateProgressEntryDto,
+  UpdateProgressEntryDto,
+} from 'src/progress-entry/dto/progress-entry.dto';
+import {
+  CreateCommentDto,
+  UpdateCommentDto,
+} from 'src/progress-entry/dto/comment.dto';
 
 @Controller('goals')
 export class GroupGoalsController {
-  constructor(private readonly groupGoalsService: GroupGoalsService) {}
+  constructor(
+    private readonly groupGoalsService: GroupGoalsService,
+    private readonly progressEntryService: ProgressEntryService,
+  ) {}
 
   @Post('group')
   @HttpCode(HttpStatus.CREATED)
@@ -201,5 +214,127 @@ export class GroupGoalsController {
     @Body() updateStepDto: UpdateStepDto,
   ) {
     return await this.groupGoalsService.editStep(goalId, stepId, updateStepDto);
+  }
+
+  // Progress Entries для групповых целей
+  @Post('group/:goalId/progress-entries')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard)
+  async createGroupProgressEntry(
+    @UserId() userId: string,
+    @Param('goalId') goalId: string,
+    @Body() createProgressEntryDto: CreateProgressEntryDto,
+  ) {
+    return await this.progressEntryService.create(userId, {
+      ...createProgressEntryDto,
+      groupGoalId: goalId,
+    });
+  }
+
+  @Get('group/:goalId/progress-entries')
+  @HttpCode(HttpStatus.OK)
+  async findAllGroupProgressEntries(
+    @Param('goalId') goalId: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    return await this.progressEntryService.findAll(goalId, page, limit, true);
+  }
+
+  @Put('group/progress-entries/:id')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async updateGroupProgressEntry(
+    @UserId() userId: string,
+    @Param('id') id: string,
+    @Body() updateProgressEntryDto: UpdateProgressEntryDto,
+  ) {
+    return await this.progressEntryService.update(
+      userId,
+      id,
+      updateProgressEntryDto,
+    );
+  }
+
+  @Delete('group/progress-entries/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard)
+  async removeGroupProgressEntry(
+    @UserId() userId: string,
+    @Param('id') id: string,
+  ) {
+    return await this.progressEntryService.remove(userId, id);
+  }
+
+  @Post('group/progress-entries/:id/like')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async toggleGroupProgressEntryLike(
+    @UserId() userId: string,
+    @Param('id') id: string,
+  ) {
+    return await this.progressEntryService.toggleLike(userId, id);
+  }
+
+  @Post('group/progress-entries/:id/comments')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard)
+  async createGroupProgressEntryComment(
+    @UserId() userId: string,
+    @Param('id') progressEntryId: string,
+    @Body() createCommentDto: CreateCommentDto,
+  ) {
+    return await this.progressEntryService.createComment(
+      userId,
+      progressEntryId,
+      createCommentDto,
+    );
+  }
+
+  @Get('group/progress-entries/:id/comments')
+  @HttpCode(HttpStatus.OK)
+  async getGroupProgressEntryComments(
+    @Param('id') progressEntryId: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 20,
+  ) {
+    return await this.progressEntryService.getComments(
+      progressEntryId,
+      page,
+      limit,
+    );
+  }
+
+  @Put('group/progress-entries/comments/:commentId')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async updateGroupProgressEntryComment(
+    @Param('commentId') commentId: string,
+    @Body() updateCommentDto: UpdateCommentDto,
+  ) {
+    return await this.progressEntryService.updateComment(
+      commentId,
+      updateCommentDto,
+    );
+  }
+
+  @Delete('group/progress-entries/comments/:commentId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard)
+  async deleteGroupProgressEntryComment(
+    @UserId() userId: string,
+    @Param('commentId') commentId: string,
+  ) {
+    return await this.progressEntryService.deleteComment(userId, commentId);
+  }
+
+  @Post('group/progress-entries/comments/:commentId/like')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async toggleGroupProgressEntryCommentLike(
+    @UserId() userId: string,
+    @Param('commentId') commentId: string,
+  ) {
+    return await this.progressEntryService.toggleCommentLike(userId, commentId);
   }
 }

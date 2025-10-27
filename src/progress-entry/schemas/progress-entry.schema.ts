@@ -5,8 +5,14 @@ export type ProgressEntryDocument = ProgressEntry & Document;
 
 @Schema({ timestamps: true })
 export class ProgressEntry {
-  @Prop({ type: Types.ObjectId, ref: 'Goal', required: true })
-  goalId: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'Goal' })
+  goalId?: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'Goal' })
+  groupGoalId?: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'Profile' })
+  profile?: Types.ObjectId;
 
   @Prop({ required: true })
   content: string;
