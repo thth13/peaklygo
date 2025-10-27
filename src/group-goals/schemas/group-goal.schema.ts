@@ -143,7 +143,7 @@ export class GroupGoal {
   groupSettings: GroupSettings;
 
   @Prop({ type: [Object], default: [] })
-  CheckIns: Array<{
+  checkIns: Array<{
     userId: Types.ObjectId;
     date: Date;
     status: 'completed' | 'missed' | 'pending';

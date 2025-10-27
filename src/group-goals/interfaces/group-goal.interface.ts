@@ -47,7 +47,7 @@ export interface GroupGoal extends Document {
   isArchived: boolean;
   userId: Types.ObjectId;
   participants: Participant[];
-  CheckIns: CheckIn[];
+  checkIns: CheckIn[];
   groupSettings: GroupSettings;
   createdAt: Date;
   updatedAt: Date;

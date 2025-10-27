@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Put,
   Query,
@@ -154,18 +155,18 @@ export class GroupGoalsController {
     return await this.groupGoalsService.getGroupGoalStats(goalId);
   }
 
-  @Put('group/:goalId/steps/:stepId/complete')
+  @Patch('group/:goalId/check-in')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
-  async markGroupStepCompleted(
+  async markGroupCheckIn(
     @Request() req,
     @Param('goalId') goalId: string,
-    @Param('stepId') stepId: string,
+    @Body('date') date: Date,
     @Body('isCompleted') isCompleted: boolean,
   ) {
-    return await this.groupGoalsService.markStepCompleted(
+    return await this.groupGoalsService.markCheckIn(
       goalId,
-      stepId,
+      date,
       isCompleted,
       req.user.id,
     );

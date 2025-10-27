@@ -468,70 +468,86 @@ export class GroupGoalsService {
     };
   }
 
-  async markStepCompleted(
+  async markCheckIn(
     goalId: string,
-    stepId: string,
+    date: Date,
     isCompleted: boolean,
     userId: string,
   ): Promise<GroupGoalDocument> {
-    const goal = await this.groupGoalModel
-      .findOneAndUpdate(
-        {
-          _id: goalId,
-          'steps.id': stepId,
-        },
-        {
-          $set: { 'steps.$.isCompleted': isCompleted },
-          $push: {
-            activity: {
-              activityType: isCompleted
-                ? ActivityType.MarkStep
-                : ActivityType.UnmarkStep,
-              date: new Date(),
-            },
-          },
-        },
-        { new: true },
-      )
-      .exec();
+    const goal = await this.groupGoalModel.findById(goalId).exec();
 
     if (!goal) {
-      throw new NotFoundException('Goal or step not found');
+      throw new NotFoundException('Goal not found');
     }
 
     if (!goal.isGroup) {
       throw new BadRequestException('This is not a group goal');
     }
 
-    await this.calculateAndUpdateProgress(goalId);
-
-    const ratingChange = Math.floor(goal.value / 10);
-
+    // Проверяем, является ли пользователь участником цели
     const participant = goal.participants?.find(
       (p) => p.userId.toString() === userId,
     );
-    if (participant) {
-      if (isCompleted) {
-        participant.contributionScore += ratingChange;
-      } else {
-        participant.contributionScore = Math.max(
-          0,
-          participant.contributionScore - ratingChange,
-        );
-      }
-      goal.markModified('participants');
-      await goal.save();
+    if (!participant) {
+      throw new BadRequestException('User is not a participant of this goal');
     }
 
-    const targetUserId = new Types.ObjectId(userId);
+    const dateString = new Date(date).toISOString().split('T')[0];
+
+    // Ищем существующий checkIn для этого пользователя и даты
+    const checkInIndex = goal.checkIns.findIndex(
+      (checkIn) =>
+        checkIn.userId.toString() === userId &&
+        new Date(checkIn.date).toISOString().split('T')[0] === dateString,
+    );
+
+    const newStatus = isCompleted ? 'completed' : 'missed';
+
+    if (checkInIndex !== -1) {
+      // Обновляем существующий checkIn
+      goal.checkIns[checkInIndex].status = newStatus;
+    } else {
+      // Создаем новый checkIn
+      goal.checkIns.push({
+        userId: new Types.ObjectId(userId),
+        date: new Date(date),
+        status: newStatus,
+        createdAt: new Date(),
+      });
+    }
+
+    goal.markModified('checkIns');
+    await goal.save();
+
+    const ratingChange = Math.floor(goal.value / 10);
 
     if (isCompleted) {
-      await this.profileService.incrementClosedTasks(targetUserId);
-      await this.profileService.incrementRating(targetUserId, ratingChange);
+      participant.contributionScore += ratingChange;
+      await this.profileService.incrementClosedTasks(
+        new Types.ObjectId(userId),
+      );
+      await this.profileService.incrementRating(
+        new Types.ObjectId(userId),
+        ratingChange,
+      );
     } else {
-      await this.profileService.decrementClosedTasks(targetUserId);
-      await this.profileService.decrementRating(targetUserId, ratingChange);
+      participant.contributionScore = Math.max(
+        0,
+        participant.contributionScore - ratingChange,
+      );
+      await this.profileService.decrementClosedTasks(
+        new Types.ObjectId(userId),
+      );
+      await this.profileService.decrementRating(
+        new Types.ObjectId(userId),
+        ratingChange,
+      );
     }
+
+    goal.markModified('participants');
+    await goal.save();
+
+    await this.calculateAndUpdateProgress(goalId);
 
     return this.groupGoalModel.findById(goalId).exec();
   }
