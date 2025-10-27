@@ -24,6 +24,7 @@ import {
   CreateGroupGoalDto,
   RespondToInvitationDto,
   SearchGroupUsersDto,
+  UpdateGroupGoalDto,
 } from './dto/group-goal.dto';
 import {
   CreateStepDto,
@@ -113,6 +114,37 @@ export class GroupGoalsController {
   @HttpCode(HttpStatus.OK)
   async getGroupGoalById(@Param('goalId') goalId: string) {
     return await this.groupGoalsService.getGroupGoalById(goalId);
+  }
+
+  @Put('group/:goalId')
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(
+    FileInterceptor('image', {
+      limits: {
+        fileSize: 20 * 1024 * 1024,
+      },
+      fileFilter: (_, file, cb) => {
+        if (file.mimetype.match(/\/(jpg|jpeg|png|gif|webp)$/)) {
+          cb(null, true);
+        } else {
+          cb(new Error('Unsupported file type'), false);
+        }
+      },
+    }),
+  )
+  @UseGuards(JwtAuthGuard)
+  async updateGroupGoal(
+    @Request() req,
+    @Param('goalId') goalId: string,
+    @Body() updateGroupGoalDto: UpdateGroupGoalDto,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return await this.groupGoalsService.updateGroupGoal(
+      goalId,
+      req.user.id,
+      updateGroupGoalDto,
+      file,
+    );
   }
 
   @Post(':goalId/participants')

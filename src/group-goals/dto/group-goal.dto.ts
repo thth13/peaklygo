@@ -154,3 +154,69 @@ export class RespondToInvitationDto {
   @IsNotEmpty()
   status: 'accepted' | 'declined';
 }
+
+export class UpdateGroupGoalDto {
+  @IsString()
+  @IsOptional()
+  goalName?: string;
+
+  @IsString()
+  @IsOptional()
+  category?: string;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @IsDate()
+  @IsOptional()
+  @Transform(({ value }) => (value ? new Date(value) : undefined))
+  startDate?: Date;
+
+  @IsDate()
+  @IsOptional()
+  @Transform(({ value }) => (value ? new Date(value) : undefined))
+  endDate?: Date;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(1)
+  @Transform(({ value }) => (value ? parseInt(value) : undefined))
+  habitDuration?: number;
+
+  @IsArray()
+  @IsEnum(DayOfWeek, { each: true })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value);
+      } catch {
+        return undefined;
+      }
+    }
+    return Array.isArray(value) ? value : undefined;
+  })
+  habitDaysOfWeek?: DayOfWeek[];
+
+  @IsOptional()
+  image?: string;
+
+  @IsObject()
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value);
+      } catch {
+        return undefined;
+      }
+    }
+    return value;
+  })
+  groupSettings?: {
+    allowMembersToInvite?: boolean;
+    requireApproval?: boolean;
+    maxParticipants?: number;
+  };
+}

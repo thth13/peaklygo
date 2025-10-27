@@ -23,6 +23,7 @@ import {
   ActivityType,
 } from 'src/goals/interfaces/goal.interface';
 import { CreateGroupGoalDto, SearchGroupUsersDto } from './dto/group-goal.dto';
+import { UpdateGroupGoalDto } from './dto/group-goal.dto';
 import {
   GroupGoal,
   Participant,
@@ -418,6 +419,48 @@ export class GroupGoalsService {
     }
 
     return goal;
+  }
+
+  async updateGroupGoal(
+    goalId: string,
+    userId: string,
+    updateGroupGoalDto: UpdateGroupGoalDto,
+    image?: Express.Multer.File,
+  ): Promise<GroupGoalDocument> {
+    const goal = await this.groupGoalModel.findById(goalId).exec();
+
+    if (!goal) {
+      throw new NotFoundException('Goal not found');
+    }
+
+    if (!goal.isGroup) {
+      throw new BadRequestException('This is not a group goal');
+    }
+
+    const participant = goal.participants?.find(
+      (p) => p.userId.toString() === userId,
+    );
+
+    if (!participant) {
+      throw new BadRequestException('You are not a participant of this goal');
+    }
+
+    if (
+      participant.role !== ParticipantRole.Owner &&
+      participant.role !== ParticipantRole.Admin
+    ) {
+      throw new BadRequestException(
+        'You do not have permission to edit this goal',
+      );
+    }
+
+    if (image) {
+      updateGroupGoalDto.image = await this.compressAndUploadImage(image);
+    }
+
+    Object.assign(goal, updateGroupGoalDto);
+
+    return await goal.save();
   }
 
   async getGroupGoalStats(goalId: string): Promise<{
