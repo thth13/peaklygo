@@ -155,10 +155,10 @@ export class GroupGoalsController {
     @Param('goalId') goalId: string,
     @Body() addParticipantDto: AddParticipantDto,
   ) {
-    return await this.groupGoalsService.addParticipant(
+    return await this.groupGoalsService.addParticipants(
       goalId,
       req.user.id,
-      addParticipantDto.userId,
+      addParticipantDto.userIds,
       addParticipantDto.role,
     );
   }

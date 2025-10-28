@@ -140,9 +140,10 @@ export class SearchGroupUsersDto {
 }
 
 export class AddParticipantDto {
-  @IsString()
+  @IsArray()
+  @IsString({ each: true })
   @IsNotEmpty()
-  userId: string;
+  userIds: string[];
 
   @IsEnum(['owner', 'admin', 'member'])
   @IsOptional()

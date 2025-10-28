@@ -152,10 +152,10 @@ export class GroupGoalsService {
     );
   }
 
-  async addParticipant(
+  async addParticipants(
     goalId: string,
     userId: string,
-    newParticipantId: string,
+    newParticipantIds: string[],
     role: string = 'member',
   ): Promise<GroupGoalDocument> {
     const goal = await this.groupGoalModel.findById(goalId).exec();
@@ -190,42 +190,68 @@ export class GroupGoalsService {
     const currentParticipants = goal.participants?.length || 0;
     const maxParticipants = goal.groupSettings?.maxParticipants || 10;
 
-    if (currentParticipants >= maxParticipants) {
-      throw new BadRequestException('Maximum number of participants reached');
+    if (currentParticipants + newParticipantIds.length > maxParticipants) {
+      throw new BadRequestException(
+        `Cannot add ${newParticipantIds.length} participants. Maximum number of participants (${maxParticipants}) would be exceeded`,
+      );
     }
 
-    const alreadyParticipant = goal.participants?.some(
-      (p) => p.userId.toString() === newParticipantId,
+    const existingParticipantIds = new Set(
+      goal.participants?.map((p) => p.userId.toString()) || [],
     );
 
-    if (alreadyParticipant) {
-      throw new BadRequestException('User is already a participant');
+    const validNewParticipants: string[] = [];
+    const alreadyParticipants: string[] = [];
+
+    newParticipantIds.forEach((id) => {
+      if (existingParticipantIds.has(id)) {
+        alreadyParticipants.push(id);
+      } else {
+        validNewParticipants.push(id);
+      }
+    });
+
+    if (validNewParticipants.length === 0) {
+      throw new BadRequestException(
+        'All specified users are already participants',
+      );
     }
 
-    const newParticipant = {
-      userId: new Types.ObjectId(newParticipantId),
+    const newParticipants = validNewParticipants.map((id) => ({
+      userId: new Types.ObjectId(id),
       role: role as ParticipantRole,
       invitationStatus: InvitationStatus.Pending,
       contributionScore: 0,
-    };
+    }));
 
     goal.participants = goal.participants || [];
-    goal.participants.push(newParticipant);
+    goal.participants.push(...newParticipants);
 
     const updatedGoal = await goal.save();
 
-    await this.notificationsService.create({
-      userId: newParticipantId,
-      type: NotificationType.GroupInvite,
-      title: 'Group goal invitation',
-      message: `You have been invited to the group goal "${goal.goalName}"`,
-      metadata: {
-        goalId: goal._id,
-        inviterId: userId,
-      },
-    });
+    await this.notificationsService.createMany(
+      validNewParticipants.map((participantId) => ({
+        userId: participantId,
+        type: NotificationType.GroupInvite,
+        title: 'Group goal invitation',
+        message: `You have been invited to the group goal "${goal.goalName}"`,
+        metadata: {
+          goalId: goal._id,
+          inviterId: userId,
+        },
+      })),
+    );
 
     return updatedGoal;
+  }
+
+  async addParticipant(
+    goalId: string,
+    userId: string,
+    newParticipantId: string,
+    role: string = 'member',
+  ): Promise<GroupGoalDocument> {
+    return this.addParticipants(goalId, userId, [newParticipantId], role);
   }
 
   async respondToInvitation(
