@@ -203,6 +203,14 @@ export class UpdateGroupGoalDto {
   @IsOptional()
   image?: string;
 
+  @IsString()
+  @IsOptional()
+  consequence?: string;
+
+  @IsString()
+  @IsOptional()
+  reward?: string;
+
   @IsObject()
   @IsOptional()
   @Transform(({ value }) => {
