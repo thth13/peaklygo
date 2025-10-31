@@ -175,6 +175,7 @@ export class GroupGoalsController {
       goalId,
       req.user.id,
       respondDto.status,
+      respondDto.notificationId,
     );
   }
 

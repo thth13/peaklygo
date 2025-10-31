@@ -22,6 +22,8 @@ export interface Notification extends Document {
   metadata?: NotificationMetadata;
   read: boolean;
   readAt?: Date;
+  isResponded: boolean;
+  respondedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }

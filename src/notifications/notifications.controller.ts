@@ -67,4 +67,14 @@ export class NotificationsController {
   async markAllAsRead(@UserId() userId: string) {
     await this.notificationsService.markAllAsRead(userId);
   }
+
+  @Patch(':id/respond')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Mark notification as responded' })
+  async markAsResponded(
+    @UserId() userId: string,
+    @Param('id') notificationId: string,
+  ) {
+    await this.notificationsService.markAsResponded(userId, notificationId);
+  }
 }

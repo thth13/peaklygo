@@ -154,6 +154,10 @@ export class RespondToInvitationDto {
   @IsEnum(['accepted', 'declined'])
   @IsNotEmpty()
   status: 'accepted' | 'declined';
+
+  @IsMongoId()
+  @IsOptional()
+  notificationId?: string;
 }
 
 export class UpdateGroupGoalDto {

@@ -144,4 +144,24 @@ export class NotificationsService {
       },
     );
   }
+
+  async markAsResponded(userId: string, notificationId: string): Promise<void> {
+    const result = await this.notificationModel.updateOne(
+      {
+        _id: new Types.ObjectId(notificationId),
+        user: new Types.ObjectId(userId),
+        isResponded: { $ne: true },
+      },
+      {
+        $set: {
+          isResponded: true,
+          respondedAt: new Date(),
+        },
+      },
+    );
+
+    if (result.matchedCount === 0) {
+      throw new NotFoundException('Notification not found');
+    }
+  }
 }

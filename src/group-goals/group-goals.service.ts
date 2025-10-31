@@ -258,6 +258,7 @@ export class GroupGoalsService {
     goalId: string,
     userId: string,
     status: 'accepted' | 'declined',
+    notificationId?: string,
   ): Promise<GroupGoalDocument> {
     const goal = await this.groupGoalModel.findById(goalId).exec();
 
@@ -281,20 +282,35 @@ export class GroupGoalsService {
       throw new BadRequestException('Invitation already responded');
     }
 
-    participant.invitationStatus =
-      status === 'accepted'
-        ? InvitationStatus.Accepted
-        : InvitationStatus.Declined;
-
-    if (status === 'accepted') {
+    if (status === 'declined') {
+      // Удаляем участника из списка при отклонении
+      goal.participants = goal.participants?.filter(
+        (p) => p.userId.toString() !== userId,
+      );
+      goal.markModified('participants');
+    } else {
+      // Принимаем приглашение
+      participant.invitationStatus = InvitationStatus.Accepted;
       participant.joinedAt = new Date();
       await this.profileService.incrementActiveGoals(
         new Types.ObjectId(userId),
       );
+      goal.markModified('participants');
     }
 
-    goal.markModified('participants');
-    return await goal.save();
+    const savedGoal = await goal.save();
+
+    // Отмечаем уведомление как отвеченное, если передан ID
+    if (notificationId) {
+      try {
+        await this.notificationsService.markAsResponded(userId, notificationId);
+      } catch (error) {
+        // Игнорируем ошибки с уведомлением, главное - сохранить ответ
+        console.error('Failed to mark notification as responded:', error);
+      }
+    }
+
+    return savedGoal;
   }
 
   async removeParticipant(
