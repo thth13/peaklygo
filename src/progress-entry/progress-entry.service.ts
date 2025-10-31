@@ -12,9 +12,14 @@ import {
 } from './dto/progress-entry.dto';
 import { CreateCommentDto, UpdateCommentDto } from './dto/comment.dto';
 import { Goal, GoalDocument } from '../goals/schemas/goal.schema';
+import {
+  GroupGoal,
+  GroupGoalDocument,
+} from '../group-goals/schemas/group-goal.schema';
 import { Profile, ProfileDocument } from '../profile/schemas/profile.schema';
 import { ActivityType } from 'src/goals/interfaces/goal.interface';
 import { ProfileService } from '../profile/profile.service';
+import { InvitationStatus } from '../group-goals/interfaces/group-goal.interface';
 
 @Injectable()
 export class ProgressEntryService {
@@ -25,6 +30,8 @@ export class ProgressEntryService {
     private commentModel: Model<CommentDocument>,
     @InjectModel(Goal.name)
     private goalModel: Model<GoalDocument>,
+    @InjectModel(GroupGoal.name)
+    private groupGoalModel: Model<GroupGoalDocument>,
     @InjectModel(Profile.name)
     private profileModel: Model<ProfileDocument>,
     private readonly profileService: ProfileService,
@@ -34,51 +41,109 @@ export class ProgressEntryService {
     userId: string,
     createProgressEntryDto: CreateProgressEntryDto,
   ): Promise<ProgressEntry> {
-    const goal = await this.goalModel
-      .findOneAndUpdate(
-        {
-          _id: createProgressEntryDto.goalId,
-          userId: new Types.ObjectId(userId),
-        },
-        {
-          $push: {
-            activity: {
-              activityType: ActivityType.ProgressEntry,
-              date: new Date(),
+    let goal: any;
+    let dayOfGoal: number;
+
+    if (createProgressEntryDto.groupGoalId) {
+      // Для групповых целей
+      goal = await this.groupGoalModel
+        .findOneAndUpdate(
+          {
+            _id: createProgressEntryDto.groupGoalId,
+            'participants.userId': new Types.ObjectId(userId),
+            'participants.invitationStatus': InvitationStatus.Accepted,
+          },
+          {
+            $push: {
+              activity: {
+                activityType: ActivityType.ProgressEntry,
+                date: new Date(),
+              },
             },
           },
-        },
-        { new: true },
-      )
-      .exec();
+          { new: true },
+        )
+        .exec();
 
-    if (!goal) {
-      throw new NotFoundException('Goal not found or access denied');
+      if (!goal) {
+        throw new NotFoundException('Group goal not found or access denied');
+      }
+
+      dayOfGoal = this.calculateDayOfGoal(goal.startDate, new Date());
+
+      const profile = await this.profileModel
+        .findOne({ user: new Types.ObjectId(userId) })
+        .select('_id')
+        .exec();
+
+      const progressEntry = new this.progressEntryModel({
+        content: createProgressEntryDto.content,
+        groupGoalId: new Types.ObjectId(createProgressEntryDto.groupGoalId),
+        profile: new Types.ObjectId(profile._id),
+        day: dayOfGoal,
+      });
+
+      const savedEntry = await progressEntry.save();
+      await this.profileService.incrementBlogPosts(new Types.ObjectId(userId));
+
+      return savedEntry;
+    } else if (createProgressEntryDto.goalId) {
+      // Для обычных целей
+      goal = await this.goalModel
+        .findOneAndUpdate(
+          {
+            _id: createProgressEntryDto.goalId,
+            userId: new Types.ObjectId(userId),
+          },
+          {
+            $push: {
+              activity: {
+                activityType: ActivityType.ProgressEntry,
+                date: new Date(),
+              },
+            },
+          },
+          { new: true },
+        )
+        .exec();
+
+      if (!goal) {
+        throw new NotFoundException('Goal not found or access denied');
+      }
+
+      dayOfGoal = this.calculateDayOfGoal(goal.startDate, new Date());
+
+      const progressEntry = new this.progressEntryModel({
+        content: createProgressEntryDto.content,
+        goalId: new Types.ObjectId(createProgressEntryDto.goalId),
+        day: dayOfGoal,
+      });
+
+      const savedEntry = await progressEntry.save();
+      await this.profileService.incrementBlogPosts(new Types.ObjectId(userId));
+
+      return savedEntry;
+    } else {
+      throw new NotFoundException(
+        'Either goalId or groupGoalId must be provided',
+      );
     }
-
-    const dayOfGoal = this.calculateDayOfGoal(goal.startDate, new Date());
-
-    const progressEntry = new this.progressEntryModel({
-      content: createProgressEntryDto.content,
-      goalId: new Types.ObjectId(createProgressEntryDto.goalId),
-      day: dayOfGoal,
-    });
-
-    const savedEntry = await progressEntry.save();
-
-    await this.profileService.incrementBlogPosts(new Types.ObjectId(userId));
-
-    return savedEntry;
   }
 
   async findAll(
     goalId: string,
     page: number = 1,
     limit: number = 10,
+    isGroupGoal: boolean = false,
   ): Promise<any[]> {
+    const filter = isGroupGoal
+      ? { groupGoalId: new Types.ObjectId(goalId) }
+      : { goalId: new Types.ObjectId(goalId) };
+
     const entries = await this.progressEntryModel
-      .find({ goalId: new Types.ObjectId(goalId) })
+      .find(filter)
       .populate('likes', 'username')
+      .populate('profile', 'name avatar user')
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
@@ -109,10 +174,30 @@ export class ProgressEntryService {
     const entry = await this.progressEntryModel
       .findById(entryId)
       .populate<{ goalId: Goal }>('goalId')
+      .populate<{ groupGoalId: GroupGoal }>('groupGoalId')
       .exec();
 
-    if (!entry || entry.goalId.userId.toString() !== userId) {
+    if (!entry) {
+      throw new NotFoundException('Progress entry not found');
+    }
+
+    // Проверяем доступ для обычных целей
+    if (entry.goalId && entry.goalId.userId.toString() !== userId) {
       throw new NotFoundException('Progress entry not found or access denied');
+    }
+
+    // Проверяем доступ для групповых целей
+    if (entry.groupGoalId) {
+      const hasAccess = entry.groupGoalId.participants.some(
+        (p) =>
+          p.userId.toString() === userId &&
+          p.invitationStatus === InvitationStatus.Accepted,
+      );
+      if (!hasAccess) {
+        throw new NotFoundException(
+          'Progress entry not found or access denied',
+        );
+      }
     }
 
     const updatedEntry = await this.progressEntryModel
@@ -135,10 +220,30 @@ export class ProgressEntryService {
     const entry = await this.progressEntryModel
       .findById(entryId)
       .populate<{ goalId: Goal }>('goalId')
+      .populate<{ groupGoalId: GroupGoal }>('groupGoalId')
       .exec();
 
-    if (!entry || entry.goalId.userId.toString() !== userId) {
+    if (!entry) {
+      throw new NotFoundException('Progress entry not found');
+    }
+
+    // Проверяем доступ для обычных целей
+    if (entry.goalId && entry.goalId.userId.toString() !== userId) {
       throw new NotFoundException('Progress entry not found or access denied');
+    }
+
+    // Проверяем доступ для групповых целей
+    if (entry.groupGoalId) {
+      const hasAccess = entry.groupGoalId.participants.some(
+        (p) =>
+          p.userId.toString() === userId &&
+          p.invitationStatus === InvitationStatus.Accepted,
+      );
+      if (!hasAccess) {
+        throw new NotFoundException(
+          'Progress entry not found or access denied',
+        );
+      }
     }
 
     const result = await this.progressEntryModel

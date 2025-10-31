@@ -6,8 +6,12 @@ export class CreateProgressEntryDto {
   content: string;
 
   @IsString()
-  @IsNotEmpty()
-  goalId: string;
+  @IsOptional()
+  goalId?: string;
+
+  @IsString()
+  @IsOptional()
+  groupGoalId?: string;
 }
 
 export class UpdateProgressEntryDto {

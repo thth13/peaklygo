@@ -16,6 +16,7 @@ import {
   RefreshTokenSchema,
 } from './schemas/refresh-token-schema';
 import { UserService } from 'src/user/user.service';
+import { NotificationsModule } from 'src/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { UserService } from 'src/user/user.service';
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '5 days' },
     }),
+    NotificationsModule,
   ],
   providers: [AuthService, JwtStrategy, PremiumGuard, UserService],
   exports: [AuthService, PremiumGuard],

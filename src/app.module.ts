@@ -8,7 +8,9 @@ import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { ProfileModule } from './profile/profile.module';
 import { GoalsModule } from './goals/goals.module';
+import { GroupGoalsModule } from './group-goals/group-goals.module';
 import { ProgressEntryModule } from './progress-entry/progress-entry.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -41,7 +43,9 @@ import { ProgressEntryModule } from './progress-entry/progress-entry.module';
     UserModule,
     ProfileModule,
     GoalsModule,
+    GroupGoalsModule,
     ProgressEntryModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}

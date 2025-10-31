@@ -68,8 +68,9 @@ export class GoalsService {
     } = paginationDto;
     const skip = (page - 1) * limit;
 
-    let query: any = {
+    const query: any = {
       userId: new Types.ObjectId(userId),
+      isGroup: { $ne: true },
     };
 
     switch (filter) {
@@ -82,7 +83,9 @@ export class GoalsService {
       case GoalFilterType.ACTIVE:
       default:
         query.isCompleted = { $ne: true };
-        query.$or = [{ isArchived: false }, { isArchived: { $exists: false } }];
+        query.$and = [
+          { $or: [{ isArchived: false }, { isArchived: { $exists: false } }] },
+        ];
         break;
     }
 
@@ -322,12 +325,14 @@ export class GoalsService {
 
     const ratingChange = Math.floor(goal.value / 10);
 
+    const targetUserId = goal.userId;
+
     if (isCompleted) {
-      await this.profileService.incrementClosedTasks(goal.userId);
-      await this.profileService.incrementRating(goal.userId, ratingChange);
+      await this.profileService.incrementClosedTasks(targetUserId);
+      await this.profileService.incrementRating(targetUserId, ratingChange);
     } else {
-      await this.profileService.decrementClosedTasks(goal.userId);
-      await this.profileService.decrementRating(goal.userId, ratingChange);
+      await this.profileService.decrementClosedTasks(targetUserId);
+      await this.profileService.decrementRating(targetUserId, ratingChange);
     }
 
     return this.goalModel.findById(goalId).exec();

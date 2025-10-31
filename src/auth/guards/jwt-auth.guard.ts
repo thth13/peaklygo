@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Request } from 'express';
 import * as jwt from 'jsonwebtoken';
 import { JwtPayload } from 'jsonwebtoken';
@@ -10,14 +15,16 @@ export class JwtAuthGuard implements CanActivate {
 
   constructor() {
     if (!process.env.ENCRYPT_JWT_SECRET) {
-      throw new Error('ENCRYPT_JWT_SECRET is not defined in environment variables!');
+      throw new Error(
+        'ENCRYPT_JWT_SECRET is not defined in environment variables!',
+      );
     }
     this.cryptr = new Cryptr(process.env.ENCRYPT_JWT_SECRET);
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    let encryptedToken = this.extractTokenFromHeader(request);
+    const encryptedToken = this.extractTokenFromHeader(request);
 
     if (!encryptedToken) {
       throw new UnauthorizedException('No token provided');
@@ -35,9 +42,13 @@ export class JwtAuthGuard implements CanActivate {
       const secret = process.env.JWT_SECRET;
       if (!secret) {
         console.error('JWT_SECRET is not defined in environment variables!');
-        throw new UnauthorizedException('Internal server error: JWT secret not configured.');
+        throw new UnauthorizedException(
+          'Internal server error: JWT secret not configured.',
+        );
       }
-      const decoded = jwt.verify(token, secret) as JwtPayload & { userId?: string };
+      const decoded = jwt.verify(token, secret) as JwtPayload & {
+        userId?: string;
+      };
 
       if (!decoded.userId) {
         console.log('userId not found in decoded token');

@@ -24,7 +24,6 @@ import {
   MarkHabitDayDto,
 } from './dto/goal.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CheckAccessGuard } from '../auth/guards/checkAccess.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('goals')
@@ -133,7 +132,6 @@ export class GoalsController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   async markStepCompleted(
-    @Request() req,
     @Param('goalId') goalId: string,
     @Param('stepId') stepId: string,
     @Body('isCompleted') isCompleted: boolean,
